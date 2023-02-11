@@ -194,6 +194,25 @@ const getAllCity = (req, res) => {
   }
 };
 
+const getInShortNews = (req, res) => {
+  try {
+    var request = require("request");
+    var options = {
+      method: "GET",
+      url: `https://inshorts.deta.dev/news?category=${req.params.category}`,
+    };
+    request(options, function (error, response) {
+      if (error) throw new Error(error);
+      res
+        .status(StatusCodes.OK)
+        .send({ success: true, result: JSON.parse(response.body) });
+    });
+  } catch (error) {
+    console.log(error);
+    res.send({ success: false, err: error });
+  }
+};
+
 function getDates(startDate, endDate) {
   var dates = [],
     currentDate = startDate,
@@ -212,7 +231,6 @@ function getDates(startDate, endDate) {
   }
   return dates.join(", ");
 }
-
 module.exports = {
   uploadMFData,
   getMFData,
@@ -221,4 +239,5 @@ module.exports = {
   getAllCountry,
   getAllState,
   getAllCity,
+  getInShortNews,
 };

@@ -8,6 +8,7 @@ const {
   getAllCountry,
   getAllState,
   getAllCity,
+  getInShortNews,
 } = require("../controller/third-party");
 const authMiddleware = require("../middleware/auth");
 
@@ -18,5 +19,6 @@ router.route("/get-mf-history/:scheme_code").get(authMiddleware, getNavHistory);
 router.route("/get-csc").get(getAllCountry);
 router.route("/get-csc/:country").get(getAllState);
 router.route("/get-csc/:country/:state").get(getAllCity);
+router.route("/get-inshorts/:category").get(getInShortNews);
 
 module.exports = router;
