@@ -27,6 +27,7 @@ firebase.initializeApp({
 const user = require("./routes/user");
 const task = require("./routes/task");
 const thirdParty = require("./routes/third-party");
+const imdb = require("./routes/imdb");
 
 app.use(express.json());
 app.use(cors());
@@ -40,6 +41,7 @@ app.get("/", (req, res) => {
 app.use(api_suffix + "users", user);
 app.use(api_suffix + "tasks", task);
 app.use(api_suffix + "third-party", thirdParty);
+app.use(api_suffix + "imdb", imdb);
 
 const start = async () => {
   try {
