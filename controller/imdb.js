@@ -47,11 +47,19 @@ const getDetail = (req, res) => {
     makeRequest(
       `https://api.themoviedb.org/3/${req.params.media_type}/${req.params.id}/credits?api_key=${process.env.TMDB_KEY}`
     ),
+    makeRequest(
+      `https://api.themoviedb.org/3/${req.params.media_type}/${req.params.id}/videos?api_key=${process.env.TMDB_KEY}`
+    ),
   ])
-    .then(([resp1, resp2]) => {
-      res
-        .status(StatusCodes.OK)
-        .send({ success: true, result: { detail: resp1, credits: resp2 } });
+    .then(([resp1, resp2, resp3]) => {
+      res.status(StatusCodes.OK).send({
+        success: true,
+        result: {
+          detail: resp1,
+          credits: resp2,
+          videos: resp3.results,
+        },
+      });
     })
     .catch((error) => {
       console.error(error);
