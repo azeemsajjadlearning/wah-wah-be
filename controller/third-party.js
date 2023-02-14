@@ -1,5 +1,6 @@
 const { StatusCodes } = require("http-status-codes");
 const request = require("request");
+var axios = require("axios");
 const mongoose = require("mongoose");
 const MutualFund = require("../models/MutualFund");
 
@@ -213,6 +214,30 @@ const getInShortNews = (req, res) => {
   }
 };
 
+const getYouTubeThumbnail = (req, res) => {
+  try {
+    axios
+      .get("https://www.googleapis.com/youtube/v3/videos", {
+        params: {
+          id: req.params.key,
+          key: process.env.GCS_KEY,
+          part: "snippet",
+        },
+      })
+      .then((resp) => {
+        res.status(StatusCodes.OK).send({ success: true, result: resp.data });
+      })
+      .catch((err) => {
+        res
+          .status(StatusCodes.INTERNAL_SERVER_ERROR)
+          .send({ success: false, err: err });
+      });
+  } catch (error) {
+    console.log(error);
+    res.send({ success: false, err: error });
+  }
+};
+
 function getDates(startDate, endDate) {
   var dates = [],
     currentDate = startDate,
@@ -240,4 +265,5 @@ module.exports = {
   getAllState,
   getAllCity,
   getInShortNews,
+  getYouTubeThumbnail,
 };
