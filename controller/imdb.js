@@ -202,7 +202,16 @@ const getDetails = (req, res) => {
         }
       )
       .then((resp) => {
-        res.status(StatusCodes.OK).send({ success: true, result: resp.data });
+        if (req.query.type == "watch/providers") {
+          let response = Object.keys(resp.data).map((key) => ({
+            id: key,
+            ...resp.data[key],
+          }));
+          res
+            .status(StatusCodes.OK)
+            .send({ success: true, result: response[1] });
+        } else
+          res.status(StatusCodes.OK).send({ success: true, result: resp.data });
       })
       .catch((err) => {
         res
