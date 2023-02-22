@@ -447,26 +447,3 @@ module.exports = {
   getEpisodeDetails,
   getWatchProviders,
 };
-
-// const getExternalIds = (req, res) => {
-//   try {
-//     axios
-//       .get(imdb_prefix + "", {
-//         params: {
-//           api_key: process.env.TMDB_KEY,
-//         },
-//       })
-//       .then((resp) => {
-//         res.status(StatusCodes.OK).send({ success: true, result: resp.data });
-//       })
-//       .catch((err) => {
-//         res
-//           .status(StatusCodes.INTERNAL_SERVER_ERROR)
-//           .send({ success: false, err: err });
-//       });
-//   } catch (error) {
-//     res
-//       .status(StatusCodes.INTERNAL_SERVER_ERROR)
-//       .send({ success: false, err: error });
-//   }
-// };

@@ -30,22 +30,17 @@ const createTask = async (req, res) => {
     res.status(StatusCodes.CREATED).send({ success: true, result: task });
   } catch (error) {
     console.log(error);
-    res.send({ success: false, err: error });
+    res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .send({ success: false, err: error });
   }
 };
 
-const updateStatus = async (req, res) => {
+const updateTask = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
-    if (task) {
-      task.status = !task.status;
-      const updatedTask = await Task.findByIdAndUpdate(req.params.id, task);
-      res.status(StatusCodes.OK).send({ success: true, result: updatedTask });
-    } else {
-      res
-        .status(StatusCodes.NOT_FOUND)
-        .send({ success: true, result: "no task found!" });
-    }
+    const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body);
+    res.status(StatusCodes.OK).send({ success: true, result: updatedTask });
   } catch (error) {
     console.log(error);
     res.send({ success: false, err: error });
@@ -74,4 +69,4 @@ const deleteTask = async (req, res) => {
   }
 };
 
-module.exports = { getAllTask, getTask, createTask, updateStatus, deleteTask };
+module.exports = { getAllTask, getTask, createTask, updateTask, deleteTask };

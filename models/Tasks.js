@@ -6,7 +6,10 @@ const TaskSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    status: { type: Boolean, default: false },
+    completed: { type: Boolean, default: false },
+    dueDate: { type: Date },
+    notes: { type: String },
+    priority: { type: Number },
     user_id: {
       type: String,
       required: true,
