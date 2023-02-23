@@ -43,7 +43,7 @@ app.use(api_suffix + "users", user);
 app.use(api_suffix + "tasks", task);
 app.use(api_suffix + "third-party", thirdParty);
 app.use(api_suffix + "imdb", imdb);
-app.use(api_suffix + "gsmarena", gsmarena);
+app.use(api_suffix + "mobile", gsmarena);
 
 const start = async () => {
   try {
