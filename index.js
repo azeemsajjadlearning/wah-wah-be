@@ -29,6 +29,8 @@ const task = require("./routes/task");
 const thirdParty = require("./routes/third-party");
 const imdb = require("./routes/imdb");
 const gsmarena = require("./routes/gsm-arena");
+const fcm = require("./routes/fcm");
+const weather = require("./routes/weather");
 
 app.use(express.json());
 app.use(cors());
@@ -44,6 +46,8 @@ app.use(api_suffix + "tasks", task);
 app.use(api_suffix + "third-party", thirdParty);
 app.use(api_suffix + "imdb", imdb);
 app.use(api_suffix + "mobile", gsmarena);
+app.use(api_suffix + "fcm", fcm);
+app.use(api_suffix + "weather", weather);
 
 const start = async () => {
   try {
