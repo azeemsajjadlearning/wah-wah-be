@@ -10,6 +10,7 @@ const getWeather = (req, res) => {
         params: {
           key: process.env.WEATHER_API_KEY,
           q: `${req.params.lat},${req.params.long}`,
+          aqi: "yes",
         },
       })
       .then((resp) => {
@@ -26,7 +27,6 @@ const getWeather = (req, res) => {
       .send({ success: false, err: error });
   }
 };
-
 module.exports = {
   getWeather,
 };
