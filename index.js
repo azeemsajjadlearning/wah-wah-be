@@ -33,6 +33,7 @@ const fcm = require("./routes/fcm");
 const weather = require("./routes/weather");
 const stock = require("./routes/stock");
 const quran = require("./routes/quran");
+const menu = require("./routes/menu");
 
 app.use(express.json());
 app.use(cors());
@@ -52,6 +53,7 @@ app.use(api_suffix + "fcm", fcm);
 app.use(api_suffix + "weather", weather);
 app.use(api_suffix + "stock", stock);
 app.use(api_suffix + "quran", quran);
+app.use(api_suffix + "menu", menu);
 
 const start = async () => {
   try {

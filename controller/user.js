@@ -139,6 +139,16 @@ const getUser = async (req, res) => {
   }
 };
 
+const getAllUser = async (req, res) => {
+  try {
+    const users = await User.find();
+    res.status(StatusCodes.OK).send({ success: true, result: users });
+  } catch (error) {
+    console.log(error);
+    res.send({ success: false, err: error });
+  }
+};
+
 const updateUser = async (req, res) => {
   try {
     const updateUser = await User.findOneAndUpdate(
@@ -196,5 +206,6 @@ module.exports = {
   logout,
   resetPassword,
   getUser,
+  getAllUser,
   updateUser,
 };
