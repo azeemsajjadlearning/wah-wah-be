@@ -44,6 +44,19 @@ const createMenu = async (req, res) => {
   }
 };
 
+const giveFirstPermission = async (req, res) => {
+  try {
+    const mapping = await UserMenuMapping.create({
+      users: req.params.user_id,
+      menu: "64056cd26f3400ec6de9a980",
+    });
+    res.status(StatusCodes.CREATED).send({ success: true, result: mapping });
+  } catch (error) {
+    console.log(error);
+    res.send({ success: false, err: error });
+  }
+};
+
 const givePermission = async (req, res) => {
   try {
     const mapping = await UserMenuMapping.create({
@@ -84,6 +97,7 @@ module.exports = {
   getMenu,
   getAllMenu,
   createMenu,
+  giveFirstPermission,
   givePermission,
   removePermission,
   getAllPermission,
