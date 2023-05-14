@@ -15,7 +15,7 @@ const authMiddleware = require("../middleware/auth");
 
 router.route("/").get(authMiddleware, getMenu);
 router.route("/all").get(authMiddleware, getAllMenu);
-router.route("/create-menu").get(authMiddleware, createMenu);
+router.route("/create-menu").post(authMiddleware, createMenu);
 router.route("/give-first-permission/:user_id").get(giveFirstPermission);
 router
   .route("/give-permission/:user_id/:menu_id")

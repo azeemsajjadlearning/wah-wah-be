@@ -119,10 +119,33 @@ const getYouTubeThumbnail = (req, res) => {
   }
 };
 
+const getMyInvestment = (req, res) => {
+  try {
+    axios
+      .get(
+        "https://script.google.com/macros/s/AKfycbyYhamO24110HfGugU9o6W_5MhNKcYvV0K0BDEoWB9MXwS9Xe2Ed_k-LqHxfVnlZuSM/exec"
+      )
+      .then((resp) => {
+        res
+          .status(StatusCodes.OK)
+          .send({ success: true, result: resp.data.data });
+      })
+      .catch((err) => {
+        res
+          .status(StatusCodes.INTERNAL_SERVER_ERROR)
+          .send({ success: false, err: err });
+      });
+  } catch (error) {
+    console.log(error);
+    res.send({ success: false, err: error });
+  }
+};
+
 module.exports = {
   getAllCountry,
   getAllState,
   getAllCity,
   getInShortNews,
   getYouTubeThumbnail,
+  getMyInvestment,
 };
