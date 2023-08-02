@@ -34,6 +34,8 @@ const weather = require("./routes/weather");
 const stock = require("./routes/stock");
 const quran = require("./routes/quran");
 const menu = require("./routes/menu");
+const scraping = require("./routes/scraping");
+const train = require("./routes/train");
 
 app.use(express.json());
 app.use(cors());
@@ -54,6 +56,8 @@ app.use(api_suffix + "weather", weather);
 app.use(api_suffix + "stock", stock);
 app.use(api_suffix + "quran", quran);
 app.use(api_suffix + "menu", menu);
+app.use(api_suffix + "scrap", scraping);
+app.use(api_suffix + "train", train);
 
 const start = async () => {
   try {
