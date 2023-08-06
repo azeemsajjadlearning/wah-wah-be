@@ -36,6 +36,7 @@ const quran = require("./routes/quran");
 const menu = require("./routes/menu");
 const scraping = require("./routes/scraping");
 const train = require("./routes/train");
+const flight = require("./routes/flight");
 
 app.use(express.json());
 app.use(cors());
@@ -58,6 +59,7 @@ app.use(api_suffix + "quran", quran);
 app.use(api_suffix + "menu", menu);
 app.use(api_suffix + "scrap", scraping);
 app.use(api_suffix + "train", train);
+app.use(api_suffix + "flight", flight);
 
 const start = async () => {
   try {
