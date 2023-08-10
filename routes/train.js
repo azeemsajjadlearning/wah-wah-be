@@ -28,6 +28,6 @@ router
 router.route("/search-train/:query").get(authMiddleware, searchTrain);
 router.route("/get-running-status").post(authMiddleware, getRunningStatus);
 router.route("/get-pnr-status/:pnr").get(authMiddleware, getPNR);
-router.route("/x").get(authMiddleware, x);
+router.route("/x").get(x);
 
 module.exports = router;
