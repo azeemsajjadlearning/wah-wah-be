@@ -10,6 +10,7 @@ const {
   searchTrain,
   getRunningStatus,
   getPNR,
+  x,
 } = require("../controller/train");
 
 const authMiddleware = require("../middleware/auth");
@@ -27,5 +28,6 @@ router
 router.route("/search-train/:query").get(authMiddleware, searchTrain);
 router.route("/get-running-status").post(authMiddleware, getRunningStatus);
 router.route("/get-pnr-status/:pnr").get(authMiddleware, getPNR);
+router.route("/x").get(authMiddleware, x);
 
 module.exports = router;

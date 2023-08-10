@@ -25,24 +25,21 @@ const getCities = async (req, res) => {
 
 const searchFlights = async (req, res) => {
   try {
-    // const response = await axios.get(
-    //   "https://travel.paytm.com/api/flights/v2/search",
-    //   {
-    //     params: {
-    //       origin: req.body.origin,
-    //       destination: req.body.destination,
-    //       adults: req.body.adults || 1,
-    //       children: req.body.children || 0,
-    //       infants: req.body.infants || 0,
-    //       class: req.body.class || "E",
-    //       departureDate: req.body.departureDate,
-    //       returnDate: req.body.returnDate || null,
-    //       client: "web",
-    //     },
-    //   }
-    // );
     const response = await axios.get(
-      "https://groww.in/v1/api/stocks_data/explore/v2/indices/GIDXNIFTY100/market_trends?discovery_filter_types=TOP_GAINERS&size=10"
+      "https://travel.paytm.com/api/flights/v2/search",
+      {
+        params: {
+          origin: req.body.origin,
+          destination: req.body.destination,
+          adults: req.body.adults || 1,
+          children: req.body.children || 0,
+          infants: req.body.infants || 0,
+          class: req.body.class || "E",
+          departureDate: req.body.departureDate,
+          returnDate: req.body.returnDate || null,
+          client: "web",
+        },
+      }
     );
     res.status(StatusCodes.OK).send({ success: true, result: response.data });
   } catch (error) {
