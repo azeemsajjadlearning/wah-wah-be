@@ -14,7 +14,7 @@ const {
 
 const authMiddleware = require("../middleware/auth");
 
-router.route("/").get(authMiddleware, getPopularTrain);
+router.route("/").get(getPopularTrain);
 router.route("/get-details").post(authMiddleware, getTrainDetails);
 router.route("/get-coach").post(authMiddleware, getTrainCoach);
 router.route("/get-coach-composition").post(authMiddleware, coachComposition);
