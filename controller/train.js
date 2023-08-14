@@ -5,12 +5,12 @@ const cheerio = require("cheerio");
 const getPopularTrain = async (req, res) => {
   try {
     const response = await axios.get(
-      "https://m.redbus.in/railways/api/getLtsDetails",
-      {
-        params: {
-          trainNo: 12004,
-        },
-      }
+      "https://www.redbus.in/railways/api/getTopTenTrainsData"
+      // {
+      //   params: {
+      //     trainNo: 12004,
+      //   },
+      // }
     );
     res.status(StatusCodes.OK).send({ success: true, result: response.data });
   } catch (error) {
