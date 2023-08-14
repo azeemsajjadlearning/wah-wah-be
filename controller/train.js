@@ -4,9 +4,10 @@ const cheerio = require("cheerio");
 
 const getPopularTrain = async (req, res) => {
   try {
-    const url = "https://m.redbus.in/railways/api/getLtsDetails";
-    const queryParams = new URLSearchParams({ trainNo: 12004 });
-    const response = await fetch(`${url}?${queryParams}`);
+    const url =
+      "https://api.railbeeps.com/api/getRunningStatus/api-key/web-cfc8cf88fa0ac3b6fd8f9570608c6911/trainno/2471/date/Mon,%2014th%20Aug";
+    // const queryParams = new URLSearchParams({ trainNo: 12004 });
+    const response = await fetch(`${url}`);
 
     if (!response.ok) {
       throw new Error(`Request failed with status: ${response.status}`);
