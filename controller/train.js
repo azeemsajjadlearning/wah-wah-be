@@ -4,20 +4,21 @@ const cheerio = require("cheerio");
 
 const getPopularTrain = async (req, res) => {
   try {
-    const response = await axios.get(
-      "https://www.redbus.in/railways/api/getTopTenTrainsData"
-      // {
-      //   params: {
-      //     trainNo: 12004,
-      //   },
-      // }
-    );
-    res.status(StatusCodes.OK).send({ success: true, result: response.data });
+    const url = "https://m.redbus.in/railways/api/getLtsDetails";
+    const queryParams = new URLSearchParams({ trainNo: 12004 });
+    const response = await fetch(`${url}?${queryParams}`);
+
+    if (!response.ok) {
+      throw new Error(`Request failed with status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    res.status(StatusCodes.OK).send({ success: true, result: data });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res
       .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .send({ success: false, err: error });
+      .send({ success: false, err: error.message });
   }
 };
 
