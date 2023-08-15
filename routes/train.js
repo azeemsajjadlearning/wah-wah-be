@@ -7,7 +7,7 @@ const {
   getPNRStatus,
   searchTrain,
   getRunningStatus,
-  x,
+  getTrains,
 } = require("../controller/train");
 
 const authMiddleware = require("../middleware/auth");
@@ -18,6 +18,6 @@ router.route("/get-coach-composition").post(authMiddleware, coachComposition);
 router.route("/get-pnr-status/:pnr").get(authMiddleware, getPNRStatus);
 router.route("/search/:query").get(authMiddleware, searchTrain);
 router.route("/get-running-status").post(authMiddleware, getRunningStatus);
-router.route("/x").get(x);
+router.route("/get-trains").get(getTrains);
 
 module.exports = router;

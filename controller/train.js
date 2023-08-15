@@ -118,14 +118,14 @@ const getRunningStatus = async (req, res) => {
   }
 };
 
-const x = async (req, res) => {
+const getTrains = async (req, res) => {
   try {
     const response = await axios.get(
-      "https://www.redbus.in/railways/api/searchCall",
+      "https://www.ixigo.com/trains/v1/search/between/NDLS/LKO?date=2023-08-31&languageCode=en",
       {
-        src: "NDLS",
-        dst: "LKO",
-        doj: "20230831",
+        headers: {
+          apikey: "ixiweb!2$",
+        },
       }
     );
     res.status(StatusCodes.OK).send({ success: true, result: response.data });
@@ -144,5 +144,5 @@ module.exports = {
   getPNRStatus,
   searchTrain,
   getRunningStatus,
-  x,
+  getTrains,
 };
