@@ -1,19 +1,15 @@
 const { StatusCodes } = require("http-status-codes");
 var axios = require("axios");
-const cheerio = require("cheerio");
 
-const getTrainDetails = async (req, res) => {
+const getAllStations = async (req, res) => {
   try {
-    const response = await axios.get(
-      "https://www.irctc.co.in/eticketing/protected/mapps1/trnscheduleenquiry/" +
-        req.body.train_no,
-      {
-        headers: {
-          greq: req.body.date,
-        },
-      }
+    const resp = await axios.get(
+      "https://www.trainman.in/static/pnrApp/js/stations.json"
     );
-    res.status(StatusCodes.OK).send({ success: true, result: response.data });
+    res.status(StatusCodes.OK).send({
+      success: resp.data?.message == "ok" ? true : resp.data?.message,
+      result: resp.data?.stations,
+    });
   } catch (error) {
     console.log(error);
     res
@@ -22,146 +18,95 @@ const getTrainDetails = async (req, res) => {
   }
 };
 
-const getTrainCoach = async (req, res) => {
+const getAllTrains = async (req, res) => {
   try {
-    const response = await axios.post(
-      "https://www.irctc.co.in/online-charts/api/trainComposition",
-      {
-        trainNo: req.body.train_no,
-        jDate: req.body.date,
-        boardingStation: req.body.boarding_station,
-      }
+    const resp = await axios.get(
+      "https://www.trainman.in/static/pnrApp/js/trains.json"
     );
-    res.status(StatusCodes.OK).send({ success: true, result: response.data });
+    res.status(StatusCodes.OK).send({
+      success: resp.data?.message == "ok" ? true : resp.data?.message,
+      result: resp.data?.trains,
+    });
   } catch (error) {
     console.log(error);
     res
       .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .send({ success: false, err: error.message });
-  }
-};
-
-const coachComposition = async (req, res) => {
-  try {
-    const response = await axios.post(
-      "https://www.irctc.co.in/online-charts/api/coachComposition",
-      {
-        trainNo: req.body.train_no,
-        boardingStation: req.body.boarding_station,
-        remoteStation: req.body.remote_station,
-        trainSourceStation: req.body.train_source_station,
-        jDate: req.body.date,
-        coach: req.body.coach,
-        cls: req.body.cls,
-      }
-    );
-    res.status(StatusCodes.OK).send({ success: true, result: response.data });
-  } catch (error) {
-    console.log(error);
-    res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .send({ success: false, err: error.message });
-  }
-};
-
-const getPNRStatus = async (req, res) => {
-  try {
-    const response = await axios.get(
-      "https://m.redbus.in/railways/api/getPnrData",
-      {
-        params: {
-          pnrno: req.params.pnr,
-        },
-      }
-    );
-    res.status(StatusCodes.OK).send({ success: true, result: response.data });
-  } catch (error) {
-    console.log(error);
-    res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .send({ success: false, err: error.message });
-  }
-};
-
-const searchTrain = async (req, res) => {
-  try {
-    const response = await axios.get(
-      "https://m.redbus.in/railways/api/SolrTrainSearch",
-      {
-        params: {
-          search: req.params.query,
-        },
-      }
-    );
-    res
-      .status(StatusCodes.OK)
-      .send({ success: true, result: response.data?.response?.docs });
-  } catch (error) {
-    console.log(error);
-    res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .send({ success: false, err: error.message });
-  }
-};
-
-const getRunningStatus = async (req, res) => {
-  try {
-    const response = await axios.get(
-      `https://m.redbus.in/railways/api/getLtsDetails?trainNo=${req.body.trainNo}&doj=${req.body.doj}`
-    );
-    res.status(StatusCodes.OK).send({ success: true, result: response.data });
-  } catch (error) {
-    console.log(error);
-    res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .send({ success: false, err: error.message });
+      .send({ success: false, err: error });
   }
 };
 
 const getTrains = async (req, res) => {
   try {
-    const response = await axios.get(
-      `https://www.ixigo.com/trains/v1/search/between/${req.body.source}/${req.body.destination}`,
+    const resp1 = await axios.get(
+      `https://www.trainman.in/services/trains/${req.body.source}/${req.body.destination}`,
       {
-        headers: {
-          apikey: "ixiweb!2$",
-        },
         params: {
-          date: req.body.doj,
-          languageCode: "en",
+          key: "012562ae-60a9-4fcd-84d6-f1354ee1ea48",
+          sort: "smart",
+          meta: "true",
+          class: "ALL",
+          date: req.body.date,
+          quota: req.body.quota,
         },
       }
     );
-    res.status(StatusCodes.OK).send({ success: true, result: response.data });
+    const resp2 = await axios.get(
+      "https://www.trainman.in/services/cached-avl",
+      {
+        params: {
+          ocode: req.body.source,
+          dcode: req.body.destination,
+          date: req.body.date,
+          quota: req.body.quota,
+          timestamp: new Date().getTime(),
+        },
+      }
+    );
+    res.status(StatusCodes.OK).send({
+      success: true,
+      result: {
+        list: resp1.data,
+        availability: resp2.data,
+      },
+    });
   } catch (error) {
     console.log(error);
     res
       .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .send({ success: false, err: error.message });
+      .send({ success: false, err: error });
   }
 };
 
-const x = async (req, res) => {
+const getRunningStatus = async (req, res) => {
   try {
-    const response = await axios.get(
-      "https://www.trainman.in/static/pnrApp/js/trains.json"
+    const resp = await axios.get(
+      "https://www.trainman.in/services/get-ntes-running-status/" +
+        req.body.train_no,
+      {
+        params: {
+          key: "012562ae-60a9-4fcd-84d6-f1354ee1ea48",
+          int: 1,
+          refresh: true,
+          date: req.body.date,
+          time: new Date().getTime(),
+        },
+      }
     );
-    res.status(StatusCodes.OK).send({ success: true, result: response.data });
+    res.status(StatusCodes.OK).send({
+      success: true,
+      result: resp.data,
+    });
   } catch (error) {
     console.log(error);
     res
       .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .send({ success: false, err: error.message });
+      .send({ success: false, err: error });
   }
 };
 
 module.exports = {
-  getTrainDetails,
-  getTrainCoach,
-  coachComposition,
-  getPNRStatus,
-  searchTrain,
-  getRunningStatus,
+  getAllStations,
+  getAllTrains,
   getTrains,
-  x,
+  getRunningStatus,
 };
