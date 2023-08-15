@@ -121,12 +121,30 @@ const getRunningStatus = async (req, res) => {
 const getTrains = async (req, res) => {
   try {
     const response = await axios.get(
-      "https://www.ixigo.com/trains/v1/search/between/NDLS/LKO?date=2023-08-31&languageCode=en",
+      `https://www.ixigo.com/trains/v1/search/between/${req.body.source}/${req.body.destination}`,
       {
         headers: {
           apikey: "ixiweb!2$",
         },
+        params: {
+          date: req.body.doj,
+          languageCode: "en",
+        },
       }
+    );
+    res.status(StatusCodes.OK).send({ success: true, result: response.data });
+  } catch (error) {
+    console.log(error);
+    res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .send({ success: false, err: error.message });
+  }
+};
+
+const x = async (req, res) => {
+  try {
+    const response = await axios.get(
+      "https://www.trainman.in/static/pnrApp/js/trains.json"
     );
     res.status(StatusCodes.OK).send({ success: true, result: response.data });
   } catch (error) {
@@ -145,4 +163,5 @@ module.exports = {
   searchTrain,
   getRunningStatus,
   getTrains,
+  x,
 };
