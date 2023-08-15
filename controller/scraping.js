@@ -53,7 +53,7 @@ cron.schedule("29 9 * * *", async () => {
         isTracking: true,
       })
         .then((resp) => {
-          console.log(resp);
+          // console.log(resp);
         })
         .catch((err) => {
           console.log(err);
