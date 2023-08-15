@@ -18,6 +18,6 @@ router.route("/get-coach-composition").post(authMiddleware, coachComposition);
 router.route("/get-pnr-status/:pnr").get(authMiddleware, getPNRStatus);
 router.route("/search/:query").get(authMiddleware, searchTrain);
 router.route("/get-running-status").post(authMiddleware, getRunningStatus);
-router.route("/x").get(authMiddleware, x);
+router.route("/x").get(x);
 
 module.exports = router;
