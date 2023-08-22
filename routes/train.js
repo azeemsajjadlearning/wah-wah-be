@@ -20,6 +20,6 @@ router
   .get(authMiddleware, getTrainSchedule);
 router.route("/get-availability").post(authMiddleware, getAvailability);
 router.route("/get-running-status").post(authMiddleware, getRunningStatus);
-router.route("/get-pnr-status/:pnr").get(authMiddleware, getPNRStatus);
+router.route("/get-pnr-status/:pnr").get(getPNRStatus);
 
 module.exports = router;

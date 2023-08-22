@@ -163,7 +163,8 @@ const getRunningStatus = async (req, res) => {
 const getPNRStatus = async (req, res) => {
   try {
     const resp = await axios.get(
-      `https://api.railbeeps.com/api/getPNR/api-key/web-cfc8cf88fa0ac3b6fd8f9570608c6911/viewState/1d17cc53b1/pnrno/${req.params.pnr}/push/0`
+      // `https://api.railbeeps.com/api/getPNR/api-key/web-cfc8cf88fa0ac3b6fd8f9570608c6911/viewState/5eceaa47f9/pnrno/${req.params.pnr}/push/0`
+      "https://webapi.zoopindia.com/pnr-check/6324114938"
     );
     res.status(StatusCodes.OK).send({
       success: true,
