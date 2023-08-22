@@ -72,6 +72,29 @@ const getTrains = async (req, res) => {
   }
 };
 
+const getTrainSchedule = async (req, res) => {
+  try {
+    const resp = await axios.get(
+      "https://www.irctc.co.in/eticketing/protected/mapps1/trnscheduleenquiry/" +
+        req.params.train_no,
+      {
+        headers: {
+          greq: new Date().getTime(),
+        },
+      }
+    );
+    res.status(StatusCodes.OK).send({
+      success: true,
+      result: resp.data,
+    });
+  } catch (error) {
+    console.log(error);
+    res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .send({ success: false, err: error });
+  }
+};
+
 const getAvailability = async (req, res) => {
   try {
     const resp = await axios.post(
@@ -172,6 +195,7 @@ module.exports = {
   getAllStations,
   getAllTrains,
   getTrains,
+  getTrainSchedule,
   getAvailability,
   getRunningStatus,
   getPNRStatus,
