@@ -25,7 +25,7 @@ const getAllTrains = async (req, res) => {
     );
     res.status(StatusCodes.OK).send({
       success: resp.data?.message == "ok" ? true : resp.data?.message,
-      result: convertToTrainObjects(resp.data?.trains),
+      result: resp.data?.trains,
     });
   } catch (error) {
     console.log(error);
@@ -177,19 +177,19 @@ const getPNRStatus = async (req, res) => {
   }
 };
 
-function convertToTrainObjects(inputArray) {
-  const outputArray = [];
+// function convertToTrainObjects(inputArray) {
+//   const outputArray = [];
 
-  for (const item of inputArray) {
-    const [trainNumber, trainName] = item.split(" - ");
-    outputArray.push({
-      train_number: parseInt(trainNumber),
-      train_name: trainName,
-    });
-  }
+//   for (const item of inputArray) {
+//     const [trainNumber, trainName] = item.split(" - ");
+//     outputArray.push({
+//       train_number: parseInt(trainNumber),
+//       train_name: trainName,
+//     });
+//   }
 
-  return outputArray;
-}
+//   return outputArray;
+// }
 
 module.exports = {
   getAllStations,
