@@ -62,14 +62,6 @@ const getCollections = async (req, res) => {
       .status(StatusCodes.INTERNAL_SERVER_ERROR)
       .send({ success: false, err: error });
   }
-
-  // type =
-  //   "best-high-return" |
-  //   "best-sip-with-500" |
-  //   "best-tax-saving" |
-  //   "best-large-cap" |
-  //   "best-mid-cap" |
-  //   "best-small-cap";
 };
 
 const getMFInfo = async (req, res) => {
