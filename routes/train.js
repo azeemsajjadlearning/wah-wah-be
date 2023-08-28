@@ -11,7 +11,6 @@ const {
   getTrainComposition,
   getClassChart,
   getCoachChart,
-  test,
 } = require("../controller/train");
 
 const authMiddleware = require("../middleware/auth");
@@ -30,6 +29,5 @@ router
   .post(authMiddleware, getTrainComposition);
 router.route("/get-class-chart").post(authMiddleware, getClassChart);
 router.route("/get-coach-chart").post(authMiddleware, getCoachChart);
-router.route("/test").get(test);
 
 module.exports = router;

@@ -3,7 +3,8 @@ const firebaseAdmin = require("firebase-admin");
 const firebase = require("firebase");
 const connectDB = require("./db/connect");
 const cors = require("cors");
-
+const { StatusCodes } = require("http-status-codes");
+var axios = require("axios");
 // const serviceAccount = require("./firebase.json");
 require("dotenv").config();
 
@@ -45,6 +46,27 @@ const api_suffix = "/api/v1/";
 
 app.get("/", (req, res) => {
   res.send("Hello World!");
+});
+
+app.get("/test", async (req, res) => {
+  try {
+    const resp = await axios.get(
+      "https://groww.in/v1/api/data/mf/web/v1/collection?actTime=1693194495986&cid=popular_direct_mf&doc_required=false"
+      // {
+      //   isin: "INF966L01689",
+      //   schemeType: "Growth",
+      // }
+    );
+    res.status(StatusCodes.OK).send({
+      success: true,
+      result: resp.data,
+    });
+  } catch (error) {
+    console.log(error.response);
+    res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .send({ success: false, err: error });
+  }
 });
 
 app.use(api_suffix + "users", user);

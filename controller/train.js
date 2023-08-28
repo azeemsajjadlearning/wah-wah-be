@@ -261,27 +261,6 @@ const getCoachChart = async (req, res) => {
   }
 };
 
-const test = async (req, res) => {
-  try {
-    const resp = await axios.post(
-      "https://groww.in/v1/api/bse/v1/scheme/details",
-      {
-        isin: "INF966L01689",
-        schemeType: "Growth",
-      }
-    );
-    res.status(StatusCodes.OK).send({
-      success: true,
-      result: resp.data,
-    });
-  } catch (error) {
-    console.log(error.response);
-    res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .send({ success: false, err: error });
-  }
-};
-
 module.exports = {
   getAllStations,
   getAllTrains,
@@ -293,5 +272,4 @@ module.exports = {
   getTrainComposition,
   getClassChart,
   getCoachChart,
-  test,
 };
