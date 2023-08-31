@@ -124,6 +124,59 @@ const getMFDetails = async (req, res) => {
   }
 };
 
+const getLatestAggregate = async (req, res) => {
+  try {
+    const resp = await axios.post(
+      "https://groww.in/v1/api/stocks_data/v1/tr_live_delayed/segment/CASH/latest_aggregated",
+      {
+        exchangeAggReqMap: {
+          NSE: {
+            priceSymbolList: [],
+            indexSymbolList: ["NIFTY", "BANKNIFTY"],
+          },
+          BSE: {
+            priceSymbolList: [],
+            indexSymbolList: ["1"],
+          },
+        },
+      }
+    );
+    res.status(StatusCodes.OK).send({
+      success: true,
+      result: resp.data,
+    });
+  } catch (error) {
+    console.log(error);
+    res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .send({ success: false, err: error });
+  }
+};
+
+const getAllIndices = async (req, res) => {
+  try {
+    const resp = await axios.get(
+      "https://groww.in/v1/api/stocks_data/v1/company/search_id/nifty",
+      {
+        params: {
+          fields: "ALL_ASSETS",
+          page: 0,
+          size: 10,
+        },
+      }
+    );
+    res.status(StatusCodes.OK).send({
+      success: true,
+      result: resp.data?.allAssets || resp.data,
+    });
+  } catch (error) {
+    console.log(error);
+    res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .send({ success: false, err: error });
+  }
+};
+
 module.exports = {
   getPopularMF,
   searchMF,
@@ -131,4 +184,6 @@ module.exports = {
   getMFInfo,
   getMFGraph,
   getMFDetails,
+  getLatestAggregate,
+  getAllIndices,
 };
