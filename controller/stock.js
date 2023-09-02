@@ -141,9 +141,14 @@ const getLatestAggregate = async (req, res) => {
         },
       }
     );
+
+    let result = [];
+    result.push(resp.data.exchangeAggRespMap.BSE.indexLivePointsMap["1"]);
+    result.push(resp.data.exchangeAggRespMap.NSE.indexLivePointsMap.BANKNIFTY);
+    result.push(resp.data.exchangeAggRespMap.NSE.indexLivePointsMap.NIFTY);
     res.status(StatusCodes.OK).send({
       success: true,
-      result: resp.data,
+      result,
     });
   } catch (error) {
     console.log(error);
