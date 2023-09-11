@@ -38,6 +38,7 @@ const menu = require("./routes/menu");
 const scraping = require("./routes/scraping");
 const train = require("./routes/train");
 const flight = require("./routes/flight");
+const investment = require("./routes/investment");
 
 app.use(express.json());
 app.use(cors());
@@ -51,11 +52,7 @@ app.get("/", (req, res) => {
 app.get("/test", async (req, res) => {
   try {
     const resp = await axios.get(
-      "https://groww.in/v1/api/data/mf/web/v1/collection?actTime=1693194495986&cid=popular_direct_mf&doc_required=false"
-      // {
-      //   isin: "INF966L01689",
-      //   schemeType: "Growth",
-      // }
+      "https://hs-consumer-api.espncricinfo.com/v1/pages/matches/current?lang=en&latest=true"
     );
     res.status(StatusCodes.OK).send({
       success: true,
@@ -81,7 +78,8 @@ app.use(api_suffix + "quran", quran);
 app.use(api_suffix + "menu", menu);
 app.use(api_suffix + "scrap", scraping);
 app.use(api_suffix + "train", train);
-app.use(api_suffix + "flight", flight);
+// app.use(api_suffix + "flight", flight);
+app.use(api_suffix + "investment", investment);
 
 const start = async () => {
   try {

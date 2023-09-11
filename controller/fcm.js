@@ -13,7 +13,6 @@ const sendNotification = async (req, res) => {
 
     const response = await firebaseAdmin.messaging().send(message);
 
-    console.log("Successfully sent message:", response);
     res.sendStatus(200);
   } catch (error) {
     console.error("Error sending message:", error);
