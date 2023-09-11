@@ -39,6 +39,7 @@ const scraping = require("./routes/scraping");
 const train = require("./routes/train");
 const flight = require("./routes/flight");
 const investment = require("./routes/investment");
+const cricket = require("./routes/cricket");
 
 app.use(express.json());
 app.use(cors());
@@ -78,8 +79,9 @@ app.use(api_suffix + "quran", quran);
 app.use(api_suffix + "menu", menu);
 app.use(api_suffix + "scrap", scraping);
 app.use(api_suffix + "train", train);
-// app.use(api_suffix + "flight", flight);
+app.use(api_suffix + "flight", flight);
 app.use(api_suffix + "investment", investment);
+app.use(api_suffix + "cricket", cricket);
 
 const start = async () => {
   try {
