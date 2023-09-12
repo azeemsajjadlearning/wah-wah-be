@@ -13,6 +13,11 @@ const getInvestment = async (req, res) => {
       query.schema_id = schema_id;
     }
 
+    const fiveMinutesAgo = new Date();
+    fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
+
+    query.createdAt = { $lt: fiveMinutesAgo };
+
     const investments = await Investment.find(query);
     res.status(StatusCodes.OK).json({ success: true, data: investments });
   } catch (error) {
@@ -117,22 +122,33 @@ const updateCurrentValue = async (req, res) => {
         await investment.save();
       }
     }
-
-    res.status(StatusCodes.CREATED).json({ success: true });
   } catch (error) {
     console.error(error);
-    res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({ success: false, error: error.message });
   }
 };
 
-cron.schedule("29 9 * * *", async () => {
-  try {
-    const allInvestment = await Investment.find({ active: true });
-  } catch (error) {
-    console.error("Error updating return:", error);
-  }
+// const x = async (req, res) => {
+//   Investment.updateMany(
+//     {},
+//     { $set: { createdAt: new Date() } },
+//     function (err, result) {
+//       if (err) {
+//         console.error(err);
+//       } else {
+//         console.log(`Updated ${result.modifiedCount} documents`);
+//       }
+//     }
+//   );
+// };
+
+cron.schedule("*/5 * * * *", () => {
+  updateCurrentValue()
+    .then(() =>
+      console.log("updateCurrentValue function executed successfully")
+    )
+    .catch((error) =>
+      console.error("Error executing updateCurrentValue:", error)
+    );
 });
 
-module.exports = { getInvestment, addInvestment, updateCurrentValue };
+module.exports = { getInvestment, addInvestment };
