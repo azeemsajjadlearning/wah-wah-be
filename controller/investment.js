@@ -127,28 +127,14 @@ const updateCurrentValue = async (req, res) => {
   }
 };
 
-// const x = async (req, res) => {
-//   Investment.updateMany(
-//     {},
-//     { $set: { createdAt: new Date() } },
-//     function (err, result) {
-//       if (err) {
-//         console.error(err);
-//       } else {
-//         console.log(`Updated ${result.modifiedCount} documents`);
-//       }
-//     }
-//   );
-// };
-
 cron.schedule("*/5 * * * *", () => {
-  updateCurrentValue()
-    .then(() =>
-      console.log("updateCurrentValue function executed successfully")
-    )
-    .catch((error) =>
-      console.error("Error executing updateCurrentValue:", error)
-    );
+  // updateCurrentValue()
+  //   .then(() =>
+  //     console.log("updateCurrentValue function executed successfully")
+  //   )
+  //   .catch((error) =>
+  //     console.error("Error executing updateCurrentValue:", error)
+  //   );
 });
 
 module.exports = { getInvestment, addInvestment };
