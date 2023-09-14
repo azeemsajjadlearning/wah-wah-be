@@ -170,6 +170,12 @@ const getInvestment = async (req, res) => {
           investment_id: element._id,
         }).exec();
 
+        investmentDetails.sort((a, b) => {
+          const dateA = new Date(a.date);
+          const dateB = new Date(b.date);
+          return dateB - dateA;
+        });
+
         const mfDetail = await axios.get(
           "https://groww.in/v1/api/data/mf/web/v1/scheme/" +
             element.schema_code +
@@ -184,12 +190,19 @@ const getInvestment = async (req, res) => {
           one_day_nav:
             mfDetail.data.folio.data[mfDetail.data.folio.data.length - 2][1],
           ...element.toObject(),
+          last_investment: investmentDetails[0].date,
           details: investmentDetails,
         };
 
         return resultElement;
       })
     );
+
+    finalResult.sort((a, b) => {
+      const dateA = new Date(a.last_investment);
+      const dateB = new Date(b.last_investment);
+      return dateB - dateA;
+    });
 
     res.status(StatusCodes.OK).json({ success: true, result: finalResult });
   } catch (error) {
