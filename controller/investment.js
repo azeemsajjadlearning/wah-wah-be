@@ -3,29 +3,42 @@ const InvestmentDetail = require("../models/InvestmentDetail");
 var axios = require("axios");
 const { StatusCodes } = require("http-status-codes");
 
+const searchMf = async (req, res) => {
+  try {
+    const resp = await axios.get("https://api.mfapi.in/mf/search", {
+      params: { q: req.params.query },
+    });
+    res.status(StatusCodes.OK).send({
+      success: true,
+      result: resp.data,
+    });
+  } catch (error) {
+    res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .send({ success: false, error: error.message });
+  }
+};
+
 const createInvestment = async (req, res) => {
   let savedInvestment, savedDetail;
 
   try {
     const investment = new Investment({
       user_id: req.user.user_id,
-      schema_code: req.body.schema_code,
+      scheme_code: req.body.scheme_code,
       type: req.body.type,
     });
 
     savedInvestment = await investment.save();
 
     const mfDetail = await axios.get(
-      "https://groww.in/v1/api/data/mf/web/v1/scheme/" +
-        savedInvestment.schema_code +
-        "/graph",
-      { params: { benchmark: false, months: 10000 } }
+      "https://api.mfapi.in/mf/" + req.body.scheme_code
     );
 
     const investmentDetail = new InvestmentDetail({
       investment_id: savedInvestment._id,
       date: req.body.date,
-      nav: findNAV(mfDetail.data.folio.data, new Date(req.body.date)),
+      nav: findNAV(mfDetail.data.data, new Date(req.body.date)),
       amount: req.body.amount,
     });
 
@@ -36,13 +49,6 @@ const createInvestment = async (req, res) => {
       result: { investment: savedInvestment, detail: savedDetail },
     });
   } catch (error) {
-    if (savedInvestment) {
-      await Investment.findByIdAndRemove(savedInvestment._id);
-    }
-    if (savedDetail) {
-      await InvestmentDetail.findByIdAndRemove(savedDetail._id);
-    }
-
     if (error.code === 11000) {
       res
         .status(StatusCodes.CONFLICT)
@@ -58,20 +64,18 @@ const createInvestment = async (req, res) => {
 const addInvestment = async (req, res) => {
   try {
     const investment = await Investment.findOne({
-      schema_code: req.body.schema_code,
+      scheme_code: req.body.scheme_code,
+      user_id: req.user.user_id,
     });
 
     const mfDetail = await axios.get(
-      "https://groww.in/v1/api/data/mf/web/v1/scheme/" +
-        req.body.schema_code +
-        "/graph",
-      { params: { benchmark: false, months: 10000 } }
+      "https://api.mfapi.in/mf/" + req.body.scheme_code
     );
 
     const investmentDetail = new InvestmentDetail({
       investment_id: investment._id.toString(),
       date: req.body.date,
-      nav: findNAV(mfDetail.data.folio.data, new Date(req.body.date)),
+      nav: findNAV(mfDetail.data.data, new Date(req.body.date)),
       amount: req.body.amount,
     });
 
@@ -126,15 +130,12 @@ const deleteInvestment = async (req, res) => {
 const editInvestment = async (req, res) => {
   try {
     const mfDetail = await axios.get(
-      "https://groww.in/v1/api/data/mf/web/v1/scheme/" +
-        req.body.schema_code +
-        "/graph",
-      { params: { benchmark: false, months: 10000 } }
+      "https://api.mfapi.in/mf/" + req.body.scheme_code
     );
 
     const investmentDetail = {
       date: req.body.date,
-      nav: findNAV(mfDetail.data.folio.data, new Date(req.body.date)),
+      nav: findNAV(mfDetail.data.data, new Date(req.body.date)),
       amount: req.body.amount,
     };
 
@@ -177,18 +178,13 @@ const getInvestment = async (req, res) => {
         });
 
         const mfDetail = await axios.get(
-          "https://groww.in/v1/api/data/mf/web/v1/scheme/" +
-            element.schema_code +
-            "/graph",
-          { params: { benchmark: false, months: 10000 } }
+          "https://api.mfapi.in/mf/" + element.scheme_code
         );
 
         const resultElement = {
-          schema_name: mfDetail.data.folio.name,
-          current_nav:
-            mfDetail.data.folio.data[mfDetail.data.folio.data.length - 1][1],
-          one_day_nav:
-            mfDetail.data.folio.data[mfDetail.data.folio.data.length - 2][1],
+          schema_name: mfDetail.data.meta.scheme_name,
+          current_nav: mfDetail.data.data[0].nav,
+          one_day_nav: mfDetail.data.data[1].nav,
           ...element.toObject(),
           last_investment: investmentDetails[0].date,
           details: investmentDetails,
@@ -214,25 +210,32 @@ const getInvestment = async (req, res) => {
 };
 
 function findNAV(data, dateObject, maxAttempts = 5) {
-  let timestampToFind = dateObject.getTime();
+  for (let i = 0; i < maxAttempts; i++) {
+    const formattedDate = formatDate(dateObject);
+    const nav = data.find((ele) => ele.date === formattedDate);
 
-  for (let attempts = 0; attempts <= maxAttempts; attempts++) {
-    for (const [timestamp, value] of data) {
-      if (timestamp === timestampToFind) {
-        return value;
-      }
+    if (nav) {
+      return nav.nav;
     }
 
-    if (attempts < maxAttempts) {
-      dateObject.setDate(dateObject.getDate() + 1);
-      timestampToFind = dateObject.getTime();
-    }
+    dateObject.setDate(dateObject.getDate() + 1);
+    dateObject.setDate(dateObject.getDate() + 1);
+    timestampToFind = dateObject.getTime();
+    dateObject.setDate(dateObject.getDate() + 1);
+    timestampToFind = dateObject.getTime();
   }
-
   return null;
 }
 
+function formatDate(date) {
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+  return `${day}-${month}-${year}`;
+}
+
 module.exports = {
+  searchMf,
   createInvestment,
   addInvestment,
   getInvestment,

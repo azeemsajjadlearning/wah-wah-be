@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const {
+  searchMf,
   getInvestment,
   createInvestment,
   addInvestment,
@@ -13,6 +14,7 @@ const {
 const authMiddleware = require("../middleware/auth");
 
 router.route("/").get(authMiddleware, getInvestment);
+router.route("/search-mf/:query").get(authMiddleware, searchMf);
 router.route("/create-investment").post(authMiddleware, createInvestment);
 router.route("/add-investment").post(authMiddleware, addInvestment);
 router

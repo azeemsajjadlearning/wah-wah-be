@@ -123,7 +123,7 @@ const getMyInvestment = (req, res) => {
   try {
     axios
       .get(
-        "https://script.google.com/macros/s/AKfycbyYhamO24110HfGugU9o6W_5MhNKcYvV0K0BDEoWB9MXwS9Xe2Ed_k-LqHxfVnlZuSM/exec"
+        "https://script.google.com/macros/s/AKfycbxkCe1LHeSTeY0TXhWQL82sJ5YNBDwN5Ooo-l5Fwm9wA4b6CCe0rQhXsHWQh9qiQW16hQ/exec"
       )
       .then((resp) => {
         res
