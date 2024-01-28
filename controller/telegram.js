@@ -22,16 +22,14 @@ const uploadImages = async (req, res) => {
         });
 
         responses.push(response);
-        // Send response for each image upload
         res.write(JSON.stringify({ success: true, result: response }));
       } catch (error) {
         console.error(`Error uploading image: ${error.message}`);
-        // Send error response for each image upload failure
         res.write(JSON.stringify({ success: false, error: error.message }));
       }
     }
 
-    res.end(); // End the response after all images are processed
+    res.end();
   } catch (error) {
     console.error(error);
     res
@@ -42,23 +40,24 @@ const uploadImages = async (req, res) => {
 
 const getImages = async (req, res) => {
   try {
-    const imageIds = await Promise.all(
-      (
-        await Photo.find({ user_id: req.user.user_id }).sort({ uploadDate: -1 })
-      ).map((item) => ({
-        file_id: item.image?.file_id,
-        thumbnail: item.image?.thumbnail?.file_id,
-        metadata: item,
-      }))
-    );
+    const images = await Photo.find({ user_id: req.user.user_id }).sort({
+      uploadDate: -1,
+    });
 
     const response = await Promise.all(
-      imageIds.map(async (ele) => {
-        const thumbnailLink = await bot.getFileLink(ele.thumbnail);
+      images.map(async (item) => {
+        const file_id = item.image?.file_id;
+        const thumbnail = item.image?.thumbnail?.file_id;
+        const metadata = item;
+
+        const thumbnailLink = thumbnail
+          ? await bot.getFileLink(thumbnail)
+          : null;
+
         return {
-          file_id: ele.file_id,
+          file_id,
           thumbnail: thumbnailLink,
-          metadata: ele.metadata,
+          metadata,
         };
       })
     );
@@ -75,7 +74,49 @@ const getImages = async (req, res) => {
 const getImage = async (req, res) => {
   try {
     const response = await bot.getFileLink(req.params.file_id);
-    res.status(StatusCodes.OK).json({ success: true, result: response });
+
+    const image = await Photo.findOne({ "image.file_id": req.params.file_id });
+
+    if (!image)
+      return res
+        .status(StatusCodes.NOT_FOUND)
+        .json({ success: false, error: "Image not found" });
+
+    res.status(StatusCodes.OK).json({ success: true, result: response, image });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ success: false, error: error.message });
+  }
+};
+
+const editImage = async (req, res) => {
+  try {
+    const { title, description, uploadDate, album } = req.body;
+    const imageId = req.params.id;
+
+    const result = await Photo.updateOne(
+      { _id: imageId },
+      {
+        $set: {
+          title,
+          description,
+          uploadDate,
+          album: album || null,
+        },
+      }
+    );
+
+    if (result.nModified === 0) {
+      return res
+        .status(StatusCodes.NOT_FOUND)
+        .json({ success: false, error: "Image not found" });
+    }
+
+    res
+      .status(StatusCodes.OK)
+      .json({ success: true, message: "Image edited successfully" });
   } catch (error) {
     console.error(error);
     res
@@ -96,8 +137,10 @@ const deleteImage = async (req, res) => {
 
     const response = await Photo.deleteOne({ "image.file_id": file_id });
 
-    if (response.deletedCount === 1) {
-      res.status(StatusCodes.OK).json({ success: true, result: response });
+    if (response.acknowledged && response.deletedCount === 1) {
+      res
+        .status(StatusCodes.OK)
+        .json({ success: true, message: "Image deleted successfully" });
     } else {
       res
         .status(StatusCodes.NOT_FOUND)
@@ -111,18 +154,47 @@ const deleteImage = async (req, res) => {
   }
 };
 
-bot.on("photo", async (ctx) => {
-  //   const response = await File.create({ file: ctx.document });
-  bot.sendMessage(ctx.from.id, ctx.document.file_name + " is uploaded!");
-});
+const setFavorite = async (req, res) => {
+  try {
+    const imageId = req.params.id;
 
-bot.on("text", async (ctx) => {
-  bot.sendMessage(ctx.from.id, ctx.text);
-});
+    const existingPhoto = await Photo.findById(imageId);
 
-bot.on("document", async (ctx) => {
-  //   const response = await File.create({ file: ctx.document });
-  bot.sendMessage(ctx.from.id, ctx.document.file_name + " is uploaded!");
-});
+    if (!existingPhoto) {
+      return res
+        .status(StatusCodes.NOT_FOUND)
+        .json({ success: false, error: "Image not found" });
+    }
 
-module.exports = { getImages, uploadImages, getImage, deleteImage };
+    const newFavoriteValue = !existingPhoto.is_favorite;
+
+    const result = await Photo.updateOne(
+      { _id: imageId },
+      { $set: { is_favorite: newFavoriteValue } }
+    );
+
+    if (result.nModified === 0) {
+      return res
+        .status(StatusCodes.NOT_FOUND)
+        .json({ success: false, error: "Image not found" });
+    }
+
+    res
+      .status(StatusCodes.OK)
+      .json({ success: true, message: "Image edited successfully" });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ success: false, error: error.message });
+  }
+};
+
+module.exports = {
+  getImages,
+  uploadImages,
+  getImage,
+  editImage,
+  deleteImage,
+  setFavorite,
+};

@@ -13,6 +13,7 @@ const PhotoSchema = new mongoose.Schema({
   description: { type: String, default: null },
   image: { type: Object, required: true },
   user_id: { type: String, required: true },
+  is_favorite: { type: Boolean, default: false },
   album: { type: mongoose.Schema.Types.ObjectId, ref: "Album", default: null },
   uploadDate: { type: Date, default: Date.now },
 });
