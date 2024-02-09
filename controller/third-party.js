@@ -141,6 +141,26 @@ const getMyInvestment = (req, res) => {
   }
 };
 
+const getCountry = (req, res) => {
+  try {
+    axios
+      .get("https://api.first.org/data/v1/countries")
+      .then((resp) => {
+        res
+          .status(StatusCodes.OK)
+          .send({ success: true, result: resp.data.data });
+      })
+      .catch((err) => {
+        res
+          .status(StatusCodes.INTERNAL_SERVER_ERROR)
+          .send({ success: false, err: err });
+      });
+  } catch (error) {
+    console.log(error);
+    res.send({ success: false, err: error });
+  }
+};
+
 module.exports = {
   getAllCountry,
   getAllState,
@@ -148,4 +168,5 @@ module.exports = {
   getInShortNews,
   getYouTubeThumbnail,
   getMyInvestment,
+  getCountry,
 };
