@@ -27,12 +27,13 @@ const getLiveMatches = async (req, res) => {
 const getMatch = async (req, res) => {
   try {
     const resp = await axios.get(
-      "https://hs-consumer-api.espncricinfo.com/v1/pages/match/home",
+      "https://site.web.api.espn.com/apis/site/v2/sports/cricket/22641/summary",
       {
         params: {
+          contentorigin: "espn",
+          event: req.params.match_id,
           lang: "en",
-          seriesId: req.params.series_id,
-          matchId: req.params.match_id,
+          region: "in",
         },
       }
     );
