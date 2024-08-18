@@ -11,9 +11,9 @@ const CHAT_ID = process.env.TELEGRAM_BOT_ID;
 const CHUNK_SIZE = 20 * 1024 * 1024;
 const TEMP_DIR = "./temp_chunks";
 
-if (!fs.existsSync(TEMP_DIR)) {
-  fs.mkdirSync(TEMP_DIR);
-}
+// if (!fs.existsSync(TEMP_DIR)) {
+//   fs.mkdirSync(TEMP_DIR);
+// }
 
 const getFiles = async (req, res) => {
   try {
