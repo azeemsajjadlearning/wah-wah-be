@@ -85,7 +85,7 @@ app.use(api_suffix + "flight", flight);
 app.use(api_suffix + "investment", investment);
 app.use(api_suffix + "cricket", cricket);
 app.use(api_suffix + "telegram", telegram);
-app.use(api_suffix + "stroage", storage);
+app.use(api_suffix + "storage", storage);
 
 const start = async () => {
   try {
