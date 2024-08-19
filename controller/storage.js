@@ -3,7 +3,7 @@ const path = require("path");
 const axios = require("axios");
 const FormData = require("form-data");
 
-const { Media, Chunk } = require("../models/CloudStorage");
+const { Media, Chunk, Folder } = require("../models/CloudStorage");
 const { StatusCodes } = require("http-status-codes");
 
 const BOT_TOKEN = process.env.TELEGRAM_TOKEN;
@@ -17,7 +17,10 @@ const TEMP_DIR = "./temp_chunks";
 
 const getFiles = async (req, res) => {
   try {
-    const files = await Media.find({ user_id: req.user.user_id });
+    const files = await Media.find({
+      user_id: req.user.user_id,
+      parent_folder_id: req.params.folder_id == 0 ? null : req.params.folder_id,
+    });
     res.status(StatusCodes.OK).json({ success: true, result: files });
   } catch (error) {
     console.log(error);
@@ -93,19 +96,18 @@ const uploadFile = async (req, res) => {
 
     const randomId = new Date().getTime();
 
-    // Save metadata to database
     const media = new Media({
       file_name: originalname,
       mime_type: mimetype,
       file_id: randomId,
+      parent_folder_id: req.body.folderId || null,
       file_size: buffer.length,
-      user_id: req.user.user_id, // Assuming you have user info in req.user
+      user_id: req.user.user_id,
     });
     await media.save();
 
-    // Save chunk information
     const chunk = new Chunk({
-      file_id: randomId, // Use the first chunk's file_id for the whole file
+      file_id: randomId,
       chunk_file_ids: chunkFileIds,
     });
     await chunk.save();
@@ -174,4 +176,55 @@ const downloadFile = async (req, res) => {
   }
 };
 
-module.exports = { getFiles, getChunks, uploadFile, downloadFile };
+const createFolder = async (req, res) => {
+  try {
+    const folder = await Folder.create({
+      name: req.body.folder_name,
+      parent_folder_id: req.body.parent_folder_id || null,
+      user_id: req.user.user_id,
+    });
+    res.status(StatusCodes.OK).json({ success: true, result: folder });
+  } catch (error) {
+    console.log(error);
+    res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .send({ success: false, err: error });
+  }
+};
+
+const getFolders = async (req, res) => {
+  try {
+    const folders = await Folder.find({
+      user_id: req.user.user_id,
+      parent_folder_id: req.params.folder_id == 0 ? null : req.params.folder_id,
+    });
+    res.status(StatusCodes.OK).json({ success: true, result: folders });
+  } catch (error) {
+    console.log(error);
+    res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .send({ success: false, err: error });
+  }
+};
+
+const deleteFolder = async (req, res) => {
+  try {
+    const folder = await Folder.deleteOne({ _id: req.params.folder_id });
+    res.status(StatusCodes.OK).json({ success: true, result: folder });
+  } catch (error) {
+    console.log(error);
+    res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .send({ success: false, err: error });
+  }
+};
+
+module.exports = {
+  getFiles,
+  getChunks,
+  uploadFile,
+  downloadFile,
+  createFolder,
+  getFolders,
+  deleteFolder,
+};

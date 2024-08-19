@@ -69,8 +69,7 @@ const mediaSchema = new mongoose.Schema({
     default: Date.now,
   },
   parent_folder_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Folder",
+    type: String,
     default: null,
   },
   user_id: { type: String, required: true },
