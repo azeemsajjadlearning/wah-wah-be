@@ -219,6 +219,37 @@ const deleteFolder = async (req, res) => {
   }
 };
 
+const deleteFile = async (req, res) => {
+  try {
+    const { fileId } = req.params;
+
+    const media = await Media.findOne({ file_id: fileId });
+    if (!media) {
+      return res.status(404).json({ success: false, error: "File not found" });
+    }
+
+    const chunk = await Chunk.findOne({ file_id: fileId });
+
+    if (!chunk) {
+      return res
+        .status(404)
+        .json({ success: false, error: "Chunks not found" });
+    }
+
+    await Media.deleteOne({ file_id: fileId });
+
+    await Chunk.deleteOne({ file_id: fileId });
+
+    res.status(200).json({
+      success: true,
+      message: "File and its chunks deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting file:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 module.exports = {
   getFiles,
   getChunks,
@@ -227,4 +258,5 @@ module.exports = {
   createFolder,
   getFolders,
   deleteFolder,
+  deleteFile,
 };

@@ -8,6 +8,7 @@ const {
   createFolder,
   getFolders,
   deleteFolder,
+  deleteFile,
 } = require("../controller/storage");
 const router = express.Router();
 
@@ -22,5 +23,6 @@ router.route("/downloadFile").post(authMiddleware, downloadFile);
 router.route("/create-folder").post(authMiddleware, createFolder);
 router.route("/get-folder/:folder_id").get(authMiddleware, getFolders);
 router.route("/delete-folder/:folder_id").delete(authMiddleware, deleteFolder);
+router.route("/delete-file/:fileId").delete(authMiddleware, deleteFile);
 
 module.exports = router;
