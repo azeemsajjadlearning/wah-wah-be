@@ -9,7 +9,16 @@
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/"
+      "dest": "/index.js"
     }
-  ]
+  ],
+  "functions": {
+    "index.js": {
+      "memory": 1024,
+      "maxDuration": 10
+    }
+  },
+  "static": {
+    "directories": ["temp_chunks", "downloads", "uploads"]
+  }
 }

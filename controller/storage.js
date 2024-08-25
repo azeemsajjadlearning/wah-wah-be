@@ -14,14 +14,14 @@ const TEMP_DIR = "./temp_chunks";
 const DOWNLOAD_DIR = "./downloads";
 
 // Ensure temporary directories exist
-// const ensureDirectoryExists = (dir) => {
-//   if (!fs.existsSync(dir)) {
-//     fs.mkdirSync(dir, { recursive: true });
-//   }
-// };
+const ensureDirectoryExists = (dir) => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+};
 
-// ensureDirectoryExists(TEMP_DIR);
-// ensureDirectoryExists(DOWNLOAD_DIR);
+ensureDirectoryExists(TEMP_DIR);
+ensureDirectoryExists(DOWNLOAD_DIR);
 
 // Helper functions
 const saveFileChunk = (chunk, filePath) => fs.writeFileSync(filePath, chunk);
@@ -110,7 +110,7 @@ const uploadFile = async (req, res) => {
         );
 
         console.log(
-          `Upload progress for ${originalname}: ${progress.toFixed(3)}%`
+          `Upload progress for ${originalname}: ${progress.toFixed(2)}%`
         );
       }
 
@@ -170,9 +170,7 @@ const downloadFile = async (req, res) => {
         });
 
         chunkNo++;
-        const percentComplete = Math.round(
-          (chunkNo / totalChunks) * 100
-        ).toFixed(2);
+        const percentComplete = ((chunkNo / totalChunks) * 100).toFixed(2);
 
         console.log("Download progress: " + percentComplete + "%");
         return response.data;
