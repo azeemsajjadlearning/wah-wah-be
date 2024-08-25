@@ -20,8 +20,8 @@ const DOWNLOAD_DIR = "./downloads";
 //   }
 // };
 
-ensureDirectoryExists(TEMP_DIR);
-ensureDirectoryExists(DOWNLOAD_DIR);
+// ensureDirectoryExists(TEMP_DIR);
+// ensureDirectoryExists(DOWNLOAD_DIR);
 
 // Helper functions
 const saveFileChunk = (chunk, filePath) => fs.writeFileSync(filePath, chunk);
