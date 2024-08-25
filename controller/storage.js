@@ -14,14 +14,14 @@ const TEMP_DIR = "./temp_chunks";
 const DOWNLOAD_DIR = "./downloads";
 
 // Ensure temporary directories exist
-const ensureDirectoryExists = (dir) => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-};
+// const ensureDirectoryExists = (dir) => {
+//   if (!fs.existsSync(dir)) {
+//     fs.mkdirSync(dir, { recursive: true });
+//   }
+// };
 
-ensureDirectoryExists(TEMP_DIR);
-ensureDirectoryExists(DOWNLOAD_DIR);
+// ensureDirectoryExists(TEMP_DIR);
+// ensureDirectoryExists(DOWNLOAD_DIR);
 
 // Helper functions
 const saveFileChunk = (chunk, filePath) => fs.writeFileSync(filePath, chunk);
