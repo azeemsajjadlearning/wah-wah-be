@@ -42,6 +42,7 @@ const investment = require("./routes/investment");
 const cricket = require("./routes/cricket");
 const telegram = require("./routes/telegram");
 const storage = require("./routes/storage");
+const salary = require("./routes/salary");
 
 app.use(express.json());
 app.use(cors());
@@ -86,6 +87,7 @@ app.use(api_suffix + "investment", investment);
 app.use(api_suffix + "cricket", cricket);
 app.use(api_suffix + "telegram", telegram);
 app.use(api_suffix + "storage", storage);
+app.use(api_suffix + "salary", salary);
 
 const start = async () => {
   try {
