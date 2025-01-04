@@ -1,9 +1,8 @@
 const { StatusCodes } = require("http-status-codes");
 const TelegramBot = require("node-telegram-bot-api");
-
-const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: true });
-
 const { Photo } = require("../models/CloudStorage");
+
+const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: false });
 
 const uploadImages = async (req, res) => {
   try {

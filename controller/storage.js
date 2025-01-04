@@ -65,18 +65,6 @@ const getFiles = async (req, res) => {
   }
 };
 
-const getChunks = async (req, res) => {
-  try {
-    const chunk = await Chunk.findOne({ file_id: req.params.file_id });
-    res.status(StatusCodes.OK).json({ success: true, result: chunk });
-  } catch (error) {
-    console.error(error);
-    res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({ success: false, error: error.message });
-  }
-};
-
 const uploadFile = async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
@@ -147,38 +135,47 @@ const uploadFile = async (req, res) => {
 
 const downloadFile = async (req, res) => {
   try {
-    const { fileIdList, originalname } = req.body;
+    const { file_id, originalname } = req.body;
 
-    const fileDetails = await Promise.all(
+    // Step 1: Get chunk file IDs from the database
+    const chunk = await Chunk.findOne({ file_id });
+    if (!chunk) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        success: false,
+        error: "Chunks not found for the specified file ID.",
+      });
+    }
+
+    const fileIdList = chunk.chunk_file_ids;
+
+    // Step 2: Download each chunk from Telegram
+    let chunkNo = 0;
+    const totalChunks = fileIdList.length;
+
+    const fileChunks = await Promise.all(
       fileIdList.map(async (fileId) => {
         const fileResponse = await axios.get(
           `https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`
         );
         const filePath = fileResponse.data.result.file_path;
         const fileUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${filePath}`;
-        return { fileUrl };
-      })
-    );
 
-    let chunkNo = 0;
-    const totalChunks = fileDetails.length;
-
-    const fileChunks = await Promise.all(
-      fileDetails.map(async (fileDetail) => {
-        const response = await axios.get(fileDetail.fileUrl, {
+        const response = await axios.get(fileUrl, {
           responseType: "arraybuffer",
         });
 
         chunkNo++;
         const percentComplete = ((chunkNo / totalChunks) * 100).toFixed(2);
-
         console.log("Download progress: " + percentComplete + "%");
+
         return response.data;
       })
     );
 
+    // Step 3: Combine chunks into a single file buffer
     const finalBuffer = Buffer.concat(fileChunks);
 
+    // Step 4: Send the combined file back to the client
     res.setHeader(
       "Content-Disposition",
       `attachment; filename=${originalname}`
@@ -412,7 +409,6 @@ const search = async (req, res) => {
 
 module.exports = {
   getFiles,
-  getChunks,
   uploadFile,
   downloadFile,
   createFolder,
