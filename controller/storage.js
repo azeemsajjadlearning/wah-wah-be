@@ -9,19 +9,7 @@ const { Media, Chunk, Folder } = require("../models/CloudStorage");
 
 const BOT_TOKEN = process.env.TELEGRAM_TOKEN;
 const CHAT_ID = process.env.TELEGRAM_BOT_ID;
-const CHUNK_SIZE = 20 * 1024 * 1024;
 const TEMP_DIR = "./temp_chunks";
-const DOWNLOAD_DIR = "./downloads";
-
-// Ensure temporary directories exist
-// const ensureDirectoryExists = (dir) => {
-//   if (!fs.existsSync(dir)) {
-//     fs.mkdirSync(dir, { recursive: true });
-//   }
-// };
-
-// ensureDirectoryExists(TEMP_DIR);
-// ensureDirectoryExists(DOWNLOAD_DIR);
 
 // Helper functions
 const saveFileChunk = (chunk, filePath) => fs.writeFileSync(filePath, chunk);
@@ -49,7 +37,105 @@ const uploadChunkToTelegram = async (chunkFilePath, mimetype) => {
   return response.data.result.document.file_id;
 };
 
+const getChunkDataFromTelegram = async (fileId) => {
+  const response = await axios.get(
+    `https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`
+  );
+
+  const filePath = response.data.result.file_path;
+  const fileBuffer = await axios.get(
+    `https://api.telegram.org/file/bot${BOT_TOKEN}/${filePath}`,
+    { responseType: "arraybuffer" }
+  );
+
+  return fileBuffer.data;
+};
+
 // Main Controller Methods
+const uploadFile = async (req, res) => {
+  try {
+    const { fileName, chunkIndex, totalChunks, folderId, fileSize, fileID } =
+      req.body;
+
+    if (!req.file) {
+      throw new Error("No chunk provided");
+    }
+
+    const chunk = req.file;
+
+    const chunkFilePath = path.join(TEMP_DIR, `${fileName}.part${chunkIndex}`);
+
+    saveFileChunk(chunk.buffer, chunkFilePath);
+    const chunkFileId = await uploadChunkToTelegram(
+      chunkFilePath,
+      chunk.mimetype
+    );
+    removeFile(chunkFilePath);
+
+    const chunkRecord = await Chunk.findOneAndUpdate(
+      { file_id: fileID },
+      { $push: { chunk_file_ids: chunkFileId } },
+      { upsert: true, new: true }
+    );
+
+    if (chunkRecord.chunk_file_ids.length === parseInt(totalChunks, 10)) {
+      const media = new Media({
+        file_name: fileName,
+        mime_type: chunk.mimetype,
+        file_id: fileID,
+        parent_folder_id: folderId || null,
+        file_size: +fileSize,
+        user_id: req.user.user_id,
+      });
+      await media.save();
+
+      return res.status(StatusCodes.OK).json({
+        success: true,
+        uploadProgress: 100,
+      });
+    }
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      uploadProgress: (((+chunkIndex + 1) / +totalChunks) * 100).toFixed(2),
+    });
+  } catch (error) {
+    console.error("Error uploading chunk:", error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+const downloadChunk = async (req, res) => {
+  try {
+    const chunkId = req.body.chunk_id;
+    const chunkData = await getChunkDataFromTelegram(chunkId);
+    res.status(StatusCodes.OK).send(chunkData);
+  } catch (error) {
+    console.error("Error downloading file:", error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+const getChunks = async (req, res) => {
+  const file_id = req.params.file_id;
+
+  try {
+    const chunk = await Chunk.findOne({ file_id: file_id });
+    res.status(StatusCodes.OK).send({ success: true, result: chunk });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ success: false, error: error.message });
+  }
+};
+
 const getFiles = async (req, res) => {
   try {
     const files = await Media.find({
@@ -62,135 +148,6 @@ const getFiles = async (req, res) => {
     res
       .status(StatusCodes.INTERNAL_SERVER_ERROR)
       .json({ success: false, error: error.message });
-  }
-};
-
-const uploadFile = async (req, res) => {
-  try {
-    if (!req.files || req.files.length === 0) {
-      throw new Error("No files provided");
-    }
-
-    const uploadResults = [];
-
-    for (const file of req.files) {
-      const { originalname, buffer, mimetype } = file;
-      const chunkFileIds = [];
-      const totalChunks = Math.ceil(buffer.length / CHUNK_SIZE);
-
-      for (let start = 0; start < buffer.length; start += CHUNK_SIZE) {
-        const chunk = buffer.slice(start, start + CHUNK_SIZE);
-        const chunkFilePath = path.join(
-          TEMP_DIR,
-          `${originalname}.part${Math.floor(start / CHUNK_SIZE)}`
-        );
-
-        saveFileChunk(chunk, chunkFilePath);
-        const fileId = await uploadChunkToTelegram(chunkFilePath, mimetype);
-        chunkFileIds.push(fileId);
-        removeFile(chunkFilePath);
-
-        // Calculate progress
-        const currentChunkIndex = Math.floor(start / CHUNK_SIZE) + 1;
-        const progress = Math.min(
-          (currentChunkIndex / totalChunks) * 100,
-          100 // Ensure the progress does not exceed 100%
-        );
-
-        console.log(
-          `Upload progress for ${originalname}: ${progress.toFixed(2)}%`
-        );
-      }
-
-      const fileId = Date.now() + Math.random();
-
-      const media = new Media({
-        file_name: originalname,
-        mime_type: mimetype,
-        file_id: fileId,
-        parent_folder_id: req.body.folderId || null,
-        file_size: buffer.length,
-        user_id: req.user.user_id,
-      });
-      await media.save();
-
-      const chunk = new Chunk({
-        file_id: fileId,
-        chunk_file_ids: chunkFileIds,
-      });
-      await chunk.save();
-
-      uploadResults.push({ fileIdList: chunkFileIds, originalname });
-    }
-
-    res.status(StatusCodes.OK).json({ success: true, results: uploadResults });
-  } catch (error) {
-    console.error("Error uploading files:", error);
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      success: false,
-      error: error.message,
-    });
-  }
-};
-
-const downloadFile = async (req, res) => {
-  try {
-    const { file_id, originalname } = req.body;
-
-    // Step 1: Get chunk file IDs from the database
-    const chunk = await Chunk.findOne({ file_id });
-    if (!chunk) {
-      return res.status(StatusCodes.NOT_FOUND).json({
-        success: false,
-        error: "Chunks not found for the specified file ID.",
-      });
-    }
-
-    const fileIdList = chunk.chunk_file_ids;
-
-    // Step 2: Download each chunk from Telegram
-    let chunkNo = 0;
-    const totalChunks = fileIdList.length;
-
-    const fileChunks = await Promise.all(
-      fileIdList.map(async (fileId) => {
-        const fileResponse = await axios.get(
-          `https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`
-        );
-        const filePath = fileResponse.data.result.file_path;
-        const fileUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${filePath}`;
-
-        const response = await axios.get(fileUrl, {
-          responseType: "arraybuffer",
-        });
-
-        chunkNo++;
-        const percentComplete = ((chunkNo / totalChunks) * 100).toFixed(2);
-        console.log("Download progress: " + percentComplete + "%");
-
-        return response.data;
-      })
-    );
-
-    // Step 3: Combine chunks into a single file buffer
-    const finalBuffer = Buffer.concat(fileChunks);
-
-    // Step 4: Send the combined file back to the client
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=${originalname}`
-    );
-    res.setHeader("Content-Type", "application/octet-stream");
-
-    res.send(finalBuffer);
-  } catch (error) {
-    console.error("Error downloading file:", error.message);
-    if (!res.headersSent) {
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-        success: false,
-        error: error.message,
-      });
-    }
   }
 };
 
@@ -410,7 +367,8 @@ const search = async (req, res) => {
 module.exports = {
   getFiles,
   uploadFile,
-  downloadFile,
+  getChunks,
+  downloadChunk,
   createFolder,
   getFolders,
   deleteFolder,
