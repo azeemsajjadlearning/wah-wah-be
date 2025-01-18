@@ -2,378 +2,119 @@ const fs = require("fs");
 const path = require("path");
 const axios = require("axios");
 const FormData = require("form-data");
-const Fuse = require("fuse.js");
 const { StatusCodes } = require("http-status-codes");
 
-const { Media, Chunk, Folder } = require("../models/CloudStorage");
+const { File, Chunk } = require("../models/CloudStorage");
+const { STATUS_CODES } = require("http");
 
-const BOT_TOKEN = process.env.TELEGRAM_TOKEN;
-const CHAT_ID = process.env.TELEGRAM_BOT_ID;
+const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
+const CHANNEL_ID = process.env.DISCORD_CHANNEL_ID;
 const TEMP_DIR = "./temp_chunks";
 
-// Helper functions
+// Helper Function
 const saveFileChunk = (chunk, filePath) => fs.writeFileSync(filePath, chunk);
-
 const removeFile = (filePath) => fs.unlinkSync(filePath);
 
-const uploadChunkToTelegram = async (chunkFilePath, mimetype) => {
-  const formData = new FormData();
-  formData.append("chat_id", CHAT_ID);
-  formData.append("document", fs.createReadStream(chunkFilePath), {
-    filename: path.basename(chunkFilePath),
-    contentType: mimetype,
-  });
+const uploadFile = async (req, res) => {
+  const { file } = req;
 
-  const response = await axios.post(
-    `https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`,
-    formData,
-    { headers: formData.getHeaders() }
-  );
-
-  if (!response.data.ok) {
-    throw new Error(`Failed to upload chunk: ${response.data.description}`);
+  if (!file) {
+    return res
+      .status(StatusCodes.BAD_REQUEST)
+      .json({ message: "No file uploaded" });
   }
 
-  return response.data.result.document.file_id;
-};
+  const tempFilePath = path.join(TEMP_DIR, file.originalname);
 
-const getChunkDataFromTelegram = async (fileId) => {
-  const response = await axios.get(
-    `https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`
-  );
-
-  const filePath = response.data.result.file_path;
-  const fileBuffer = await axios.get(
-    `https://api.telegram.org/file/bot${BOT_TOKEN}/${filePath}`,
-    { responseType: "arraybuffer" }
-  );
-
-  return fileBuffer.data;
-};
-
-// Main Controller Methods
-const uploadFile = async (req, res) => {
   try {
-    const { fileName, chunkIndex, totalChunks, folderId, fileSize, fileID } =
-      req.body;
+    saveFileChunk(file.buffer, tempFilePath);
 
-    if (!req.file) {
-      throw new Error("No chunk provided");
-    }
+    const form = new FormData();
+    form.append("file", fs.createReadStream(tempFilePath));
 
-    const chunk = req.file;
-
-    const chunkFilePath = path.join(TEMP_DIR, `${fileName}.part${chunkIndex}`);
-
-    saveFileChunk(chunk.buffer, chunkFilePath);
-    const chunkFileId = await uploadChunkToTelegram(
-      chunkFilePath,
-      chunk.mimetype
-    );
-    removeFile(chunkFilePath);
-
-    const chunkRecord = await Chunk.findOneAndUpdate(
-      { file_id: fileID },
-      { $push: { chunk_file_ids: chunkFileId } },
-      { upsert: true, new: true }
+    const response = await axios.post(
+      `https://discord.com/api/v10/channels/${CHANNEL_ID}/messages`,
+      form,
+      { headers: { Authorization: `Bot ${BOT_TOKEN}` } }
     );
 
-    if (chunkRecord.chunk_file_ids.length === parseInt(totalChunks, 10)) {
-      const media = new Media({
-        file_name: fileName,
-        mime_type: chunk.mimetype,
-        file_id: fileID,
-        parent_folder_id: folderId || null,
-        file_size: +fileSize,
+    const updatedFile = await File.findOneAndUpdate(
+      { file_id: req.body.file_id },
+      {
+        file_name: req.body.file_name,
+        mime_type: req.body.mime_type,
+        file_size: req.body.file_size,
+        folder_id: req.body.folder_id || null,
         user_id: req.user.user_id,
-      });
-      await media.save();
+        updated_at: Date.now(),
+      },
+      { new: true, upsert: true }
+    );
 
-      return res.status(StatusCodes.OK).json({
-        success: true,
-        uploadProgress: 100,
-      });
-    }
+    const chunk = new Chunk({
+      file_id: req.body.file_id,
+      chunk_file_id: response.data.attachments[0].id,
+      message_id: response.data.id,
+      metadata: response.data.attachments[0],
+    });
+    await chunk.save();
 
-    res.status(StatusCodes.OK).json({
+    return res.status(StatusCodes.OK).json({
       success: true,
-      uploadProgress: (((+chunkIndex + 1) / +totalChunks) * 100).toFixed(2),
+      message: "File uploaded successfully to Discord",
+      result: updatedFile,
     });
-  } catch (error) {
-    console.error("Error uploading chunk:", error);
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+  } catch (err) {
+    console.error("Error uploading file to Discord:", err);
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       success: false,
-      error: error.message,
+      message: "Failed to upload file to Discord",
+      error: err.message || err,
     });
+  } finally {
+    removeFile(tempFilePath);
   }
 };
 
 const downloadChunk = async (req, res) => {
+  const fileUrl = req.body.url;
+
   try {
-    const chunkId = req.body.chunk_id;
-    const chunkData = await getChunkDataFromTelegram(chunkId);
-    res.status(StatusCodes.OK).send(chunkData);
+    const response = await axios.get(fileUrl, {
+      responseType: "stream",
+    });
+
+    const contentDisposition = response.headers["content-disposition"];
+    const fileName = contentDisposition
+      ? contentDisposition.split("filename=")[1]
+      : "downloaded_file";
+
+    res.setHeader("Content-Type", response.headers["content-type"]);
+    res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
+
+    response.data.pipe(res);
   } catch (error) {
-    console.error("Error downloading file:", error);
+    console.error("Error downloading file:", error.response);
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      success: false,
+      message: "Error occurred while downloading the file.",
       error: error.message,
     });
   }
 };
 
 const getChunks = async (req, res) => {
-  const file_id = req.params.file_id;
-
   try {
-    const chunk = await Chunk.findOne({ file_id: file_id });
-    res.status(StatusCodes.OK).send({ success: true, result: chunk });
-  } catch (error) {
-    console.error(error);
-    res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({ success: false, error: error.message });
-  }
-};
-
-const getFiles = async (req, res) => {
-  try {
-    const files = await Media.find({
-      user_id: req.user.user_id,
-      parent_folder_id: req.params.folder_id == 0 ? null : req.params.folder_id,
-    });
-    res.status(StatusCodes.OK).json({ success: true, result: files });
-  } catch (error) {
-    console.error(error);
-    res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({ success: false, error: error.message });
-  }
-};
-
-const createFolder = async (req, res) => {
-  try {
-    const folder = await Folder.create({
-      name: req.body.folder_name,
-      parent_folder_id: req.body.parent_folder_id || null,
-      user_id: req.user.user_id,
-    });
-    res.status(StatusCodes.OK).json({ success: true, result: folder });
-  } catch (error) {
-    console.error(error);
-    res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({ success: false, error: error.message });
-  }
-};
-
-const getFolders = async (req, res) => {
-  try {
-    const folders = await Folder.find({
-      user_id: req.user.user_id,
-      parent_folder_id: req.params.folder_id == 0 ? null : req.params.folder_id,
-    });
-    res.status(StatusCodes.OK).json({ success: true, result: folders });
-  } catch (error) {
-    console.error(error);
-    res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({ success: false, error: error.message });
-  }
-};
-
-const deleteFolder = async (req, res) => {
-  try {
-    await Folder.deleteOne({ _id: req.params.folder_id });
-    res
+    const chunks = await Chunk.find({ file_id: req.params.file_id });
+    const file = await File.find({ file_id: req.params.file_id });
+    return res
       .status(StatusCodes.OK)
-      .json({ success: true, message: "Folder deleted successfully" });
+      .send({ success: true, result: chunks, file: file });
   } catch (error) {
-    console.error(error);
-    res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({ success: false, error: error.message });
-  }
-};
-
-const deleteFile = async (req, res) => {
-  try {
-    const { fileId } = req.params;
-
-    const media = await Media.findOne({ file_id: fileId });
-    if (!media) {
-      return res
-        .status(StatusCodes.NOT_FOUND)
-        .json({ success: false, error: "File not found" });
-    }
-
-    const chunk = await Chunk.findOne({ file_id: fileId });
-    if (!chunk) {
-      return res
-        .status(StatusCodes.NOT_FOUND)
-        .json({ success: false, error: "Chunks not found" });
-    }
-
-    await Media.deleteOne({ file_id: fileId });
-    await Chunk.deleteOne({ file_id: fileId });
-
-    res.status(StatusCodes.OK).json({
-      success: true,
-      message: "File and its chunks deleted successfully",
-    });
-  } catch (error) {
-    console.error("Error deleting file:", error);
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       success: false,
-      error: error.message,
+      error: error.message || error,
     });
   }
 };
 
-const moveFiles = async (req, res) => {
-  try {
-    const { fileIds, destinationFolderId } = req.body;
-
-    if (!fileIds || !destinationFolderId) {
-      throw new Error("File IDs and destination folder ID are required.");
-    }
-
-    const destinationFolder = await Folder.findById(destinationFolderId);
-    if (!destinationFolder) {
-      return res
-        .status(StatusCodes.NOT_FOUND)
-        .json({ success: false, error: "Destination folder not found" });
-    }
-
-    const updatePromises = fileIds.map((fileId) =>
-      Media.updateOne(
-        { file_id: fileId },
-        { parent_folder_id: destinationFolderId }
-      )
-    );
-    await Promise.all(updatePromises);
-
-    res
-      .status(StatusCodes.OK)
-      .json({ success: true, message: "Files moved successfully" });
-  } catch (error) {
-    console.error("Error moving files:", error);
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      success: false,
-      error: error.message,
-    });
-  }
-};
-
-const moveFolder = async (req, res) => {
-  try {
-    const { folderId, destinationFolderId } = req.body;
-
-    if (!folderId || !destinationFolderId) {
-      throw new Error("Folder ID and destination folder ID are required.");
-    }
-
-    // Validate folders
-    const folderToMove = await Folder.findById(folderId);
-    const destinationFolder = await Folder.findById(destinationFolderId);
-
-    if (!folderToMove) {
-      return res
-        .status(StatusCodes.NOT_FOUND)
-        .json({ success: false, error: "Folder to move not found" });
-    }
-
-    if (!destinationFolder) {
-      return res
-        .status(StatusCodes.NOT_FOUND)
-        .json({ success: false, error: "Destination folder not found" });
-    }
-
-    // Update the parent_folder_id for the folder
-    await Folder.updateOne(
-      { _id: folderId },
-      { parent_folder_id: destinationFolderId }
-    );
-
-    res.status(StatusCodes.OK).json({
-      success: true,
-      message: "Folder moved successfully",
-    });
-  } catch (error) {
-    console.error("Error moving folder:", error);
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      success: false,
-      error: error.message,
-    });
-  }
-};
-
-const search = async (req, res) => {
-  try {
-    const { query } = req.query;
-
-    if (!query) {
-      return res
-        .status(400)
-        .json({ success: false, error: "Query parameter is required" });
-    }
-
-    // Search in files
-    const files = await Media.find({
-      user_id: req.user.user_id,
-      file_name: { $regex: query, $options: "i" }, // Case-insensitive search
-    });
-
-    // Search in folders
-    const folders = await Folder.find({
-      user_id: req.user.user_id,
-      name: { $regex: query, $options: "i" }, // Case-insensitive search
-    });
-
-    // Fuse.js options for files
-    const fileOptions = {
-      includeScore: true,
-      threshold: 0.4, // Adjust threshold as needed
-      keys: ["file_name"], // Search file_name field
-    };
-
-    // Fuse.js options for folders
-    const folderOptions = {
-      includeScore: true,
-      threshold: 0.4, // Adjust threshold as needed
-      keys: ["name"], // Search name field
-    };
-
-    // Create Fuse instances for files and folders
-    const fileFuse = new Fuse(files, fileOptions);
-    const folderFuse = new Fuse(folders, folderOptions);
-
-    // Perform searches with Fuse.js
-    const fileResults = fileFuse.search(query).map((result) => result.item);
-    const folderResults = folderFuse.search(query).map((result) => result.item);
-
-    // Combine results into separate arrays
-    res.status(200).json({
-      success: true,
-      files: fileResults,
-      folders: folderResults,
-    });
-  } catch (error) {
-    console.error("Error searching:", error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-};
-
-module.exports = {
-  getFiles,
-  uploadFile,
-  getChunks,
-  downloadChunk,
-  createFolder,
-  getFolders,
-  deleteFolder,
-  deleteFile,
-  moveFiles,
-  moveFolder,
-  search,
-};
+module.exports = { uploadFile, downloadChunk, getChunks };

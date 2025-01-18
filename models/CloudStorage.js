@@ -18,29 +18,7 @@ const PhotoSchema = new mongoose.Schema({
   uploadDate: { type: Date, default: Date.now },
 });
 
-const folderSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-    trim: true,
-  },
-  parent_folder_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Folder",
-    default: null,
-  },
-  created_at: {
-    type: Date,
-    default: Date.now,
-  },
-  updated_at: {
-    type: Date,
-    default: Date.now,
-  },
-  user_id: { type: String, required: true },
-});
-
-const mediaSchema = new mongoose.Schema({
+const FileSchema = new mongoose.Schema({
   file_name: {
     type: String,
     required: true,
@@ -68,25 +46,55 @@ const mediaSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
-  parent_folder_id: {
+  folder_id: {
     type: String,
     default: null,
   },
   user_id: { type: String, required: true },
 });
 
-const chunkSchema = new mongoose.Schema({
+const ChunkSchema = new mongoose.Schema({
   file_id: {
     type: String,
     required: true,
-    unique: true,
   },
-  chunk_file_ids: [
-    {
-      type: String,
-      required: true,
-    },
-  ],
+  chunk_file_id: {
+    type: String,
+    required: true,
+  },
+  message_id: {
+    type: String,
+    required: true,
+  },
+  metadata: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {},
+  },
+  created_at: {
+    type: Date,
+    default: Date.now,
+  },
+  updated_at: {
+    type: Date,
+    default: Date.now,
+  },
+});
+
+const FolderSchema = new mongoose.Schema({
+  folder_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+    auto: true,
+  },
+  folder_name: {
+    type: String,
+    required: true,
+  },
+  parent_folder_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Folder",
+    default: null,
+  },
   created_at: {
     type: Date,
     default: Date.now,
@@ -99,8 +107,8 @@ const chunkSchema = new mongoose.Schema({
 
 const Album = mongoose.model("Album", AlbumSchema);
 const Photo = mongoose.model("Photo", PhotoSchema);
-const Folder = mongoose.model("Folder", folderSchema);
-const Media = mongoose.model("Media", mediaSchema);
-const Chunk = mongoose.model("Chunk", chunkSchema);
+const File = mongoose.model("File", FileSchema);
+const Chunk = mongoose.model("Chunk", ChunkSchema);
+const Folder = mongoose.model("Folder", FolderSchema);
 
-module.exports = { Album, Photo, Folder, Media, Chunk };
+module.exports = { Album, Photo, File, Chunk, Folder };
