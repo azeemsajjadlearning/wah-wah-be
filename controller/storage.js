@@ -11,39 +11,6 @@ const CHANNEL_ID = process.env.DISCORD_CHANNEL_ID;
 const SECRET_KEY = process.env.ENCRYPTION_KEY;
 const TEMP_DIR = "./temp_chunks";
 
-// Helper Function
-const saveFileChunk = (chunk, filePath) => fs.writeFileSync(filePath, chunk);
-
-const removeFile = (filePath) => fs.unlinkSync(filePath);
-
-const encryptData = (data, key) => {
-  return Buffer.from(data).map(
-    (byte, index) => byte ^ key.charCodeAt(index % key.length)
-  );
-};
-
-const decryptData = (data, key) => {
-  return Buffer.from(data).map(
-    (byte, index) => byte ^ key.charCodeAt(index % key.length)
-  );
-};
-
-const getFolderPath = async (folderId) => {
-  let path = [];
-  let currentFolder = await Folder.findById(folderId);
-
-  while (currentFolder) {
-    path.unshift({
-      folder_id: currentFolder.id,
-      folder_name: currentFolder.folder_name,
-    });
-    if (!currentFolder.parent_folder_id) break;
-    currentFolder = await Folder.findById(currentFolder.parent_folder_id);
-  }
-
-  return path;
-};
-
 const uploadFile = async (req, res) => {
   const { file } = req;
 
@@ -245,6 +212,101 @@ const createFolder = async (req, res) => {
   }
 };
 
+const renameFolder = async (req, res) => {
+  try {
+    const folder = await Folder.findById(req.params.folder_id);
+
+    if (!folder) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        success: false,
+        error: "Folder not found",
+      });
+    }
+
+    folder.folder_name = req.body.folder_name || folder.folder_name;
+
+    await folder.save();
+
+    return res.status(StatusCodes.OK).json({
+      success: true,
+      result: folder,
+    });
+  } catch (error) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: error.message || error,
+    });
+  }
+};
+
+const deleteFolder = async (req, res) => {
+  try {
+    const folder = await Folder.findById(req.params.folder_id);
+
+    if (!folder) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        success: false,
+        error: "Folder not found",
+      });
+    }
+
+    const file = await File.find({ folder_id: req.params.folder_id });
+    const insideFolder = await Folder.find({
+      parent_folder_id: req.params.folder_id,
+    });
+
+    if (file.length > 0 || insideFolder.length > 0) {
+      res.status(StatusCodes.CONFLICT).json({
+        success: false,
+        error: "This folder contains some files or folders!",
+      });
+    } else {
+      const folder = await Folder.findByIdAndDelete(req.params.folder_id);
+      return res.status(StatusCodes.OK).json({
+        success: true,
+        result: folder,
+      });
+    }
+  } catch (error) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: error.message || error,
+    });
+  }
+};
+
+// Helper Function
+const saveFileChunk = (chunk, filePath) => fs.writeFileSync(filePath, chunk);
+const removeFile = (filePath) => fs.unlinkSync(filePath);
+
+const encryptData = (data, key) => {
+  return Buffer.from(data).map(
+    (byte, index) => byte ^ key.charCodeAt(index % key.length)
+  );
+};
+
+const decryptData = (data, key) => {
+  return Buffer.from(data).map(
+    (byte, index) => byte ^ key.charCodeAt(index % key.length)
+  );
+};
+
+const getFolderPath = async (folderId) => {
+  let path = [];
+  let currentFolder = await Folder.findById(folderId);
+
+  while (currentFolder) {
+    path.unshift({
+      folder_id: currentFolder.id,
+      folder_name: currentFolder.folder_name,
+    });
+    if (!currentFolder.parent_folder_id) break;
+    currentFolder = await Folder.findById(currentFolder.parent_folder_id);
+  }
+
+  return path;
+};
+
 module.exports = {
   uploadFile,
   downloadChunk,
@@ -252,4 +314,6 @@ module.exports = {
   deleteFile,
   getFiles,
   createFolder,
+  renameFolder,
+  deleteFolder,
 };
