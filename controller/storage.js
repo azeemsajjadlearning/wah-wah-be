@@ -175,8 +175,8 @@ const deleteFile = async (req, res) => {
             },
           }
         );
-      } catch (err) {
-        console.log(`Error deleting chunk: ${err}`);
+      } catch (error) {
+        console.log(`Error deleting chunk: ${error}`);
       }
     }
 
