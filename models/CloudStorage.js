@@ -95,6 +95,7 @@ const FolderSchema = new mongoose.Schema({
     ref: "Folder",
     default: null,
   },
+  user_id: { type: String, required: true },
   created_at: {
     type: Date,
     default: Date.now,
