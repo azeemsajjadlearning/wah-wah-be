@@ -9,7 +9,7 @@ const { File, Chunk, Folder } = require("../models/CloudStorage");
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const CHANNEL_ID = process.env.DISCORD_CHANNEL_ID;
 const SECRET_KEY = process.env.ENCRYPTION_KEY;
-const TEMP_DIR = "./temp_chunks";
+const TEMP_DIR = "/tmp/temp_chunks";
 
 const uploadFile = async (req, res) => {
   const { file } = req;
@@ -41,7 +41,8 @@ const uploadFile = async (req, res) => {
         file_name: req.body.file_name,
         mime_type: req.body.mime_type,
         file_size: req.body.file_size,
-        folder_id: req.body.folder_id || null,
+        folder_id:
+          (req.body.folder_id == 0 ? null : req.body.folder_id) || null,
         user_id: req.user.user_id,
         updated_at: Date.now(),
       },
@@ -130,6 +131,8 @@ const deleteFile = async (req, res) => {
     }
 
     for (const chunk of chunks) {
+      console.log(chunk);
+
       try {
         await axios.post(
           `https://discord.com/api/v10/channels/${CHANNEL_ID}/messages/bulk-delete`,
@@ -276,8 +279,23 @@ const deleteFolder = async (req, res) => {
 };
 
 // Helper Function
-const saveFileChunk = (chunk, filePath) => fs.writeFileSync(filePath, chunk);
-const removeFile = (filePath) => fs.unlinkSync(filePath);
+const saveFileChunk = (chunk, filePath) => {
+  const dir = path.dirname(filePath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  fs.writeFileSync(filePath, chunk);
+};
+
+const removeFile = (filePath) => {
+  try {
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+  } catch (err) {
+    console.error("Error removing file:", err);
+  }
+};
 
 const encryptData = (data, key) => {
   return Buffer.from(data).map(
