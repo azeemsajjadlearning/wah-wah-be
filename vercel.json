@@ -11,12 +11,5 @@
       "src": "/(.*)",
       "dest": "/"
     }
-  ],"functions": {
-    "api/*": {
-      "maxDuration": 10,
-      "maxMemory": 128,
-      "memory": 300,
-      "maxSize": 10
-    }
-  }
+  ]
 }
