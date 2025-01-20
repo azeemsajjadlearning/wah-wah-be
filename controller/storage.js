@@ -131,8 +131,6 @@ const deleteFile = async (req, res) => {
     }
 
     for (const chunk of chunks) {
-      console.log(chunk);
-
       try {
         await axios.post(
           `https://discord.com/api/v10/channels/${CHANNEL_ID}/messages/bulk-delete`,
