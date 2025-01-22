@@ -75,24 +75,41 @@ const uploadFile = async (req, res) => {
 };
 
 const downloadChunk = async (req, res) => {
-  const fileUrl = req.body.url;
+  const message_id = req.body.message_id;
 
   try {
-    const response = await axios.get(fileUrl, {
-      responseType: "arraybuffer",
-    });
+    axios
+      .get(
+        `https://discord.com/api/v10/channels/${CHANNEL_ID}/messages/${message_id}`,
+        {
+          headers: {
+            Authorization: `Bot ${BOT_TOKEN}`,
+          },
+        }
+      )
+      .then(async (resp) => {
+        const response = await axios.get(resp.data.attachments[0]?.url, {
+          responseType: "arraybuffer",
+        });
 
-    const decryptedData = decryptData(response.data, SECRET_KEY);
+        const decryptedData = decryptData(response.data, SECRET_KEY);
 
-    const contentDisposition = response.headers["content-disposition"];
-    const fileName = contentDisposition
-      ? contentDisposition.split("filename=")[1]
-      : "downloaded_file";
+        const contentDisposition = response.headers["content-disposition"];
+        const fileName = contentDisposition
+          ? contentDisposition.split("filename=")[1]
+          : "downloaded_file";
 
-    res.setHeader("Content-Type", response.headers["content-type"]);
-    res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
+        res.setHeader("Content-Type", response.headers["content-type"]);
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename=${fileName}`
+        );
 
-    res.send(decryptedData);
+        res.send(decryptedData);
+      })
+      .catch((err) => {
+        console.error("Response Error:", err);
+      });
   } catch (error) {
     console.error("Error downloading file:", error.response);
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
