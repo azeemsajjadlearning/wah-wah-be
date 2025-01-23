@@ -35,11 +35,16 @@ const uploadFile = async (req, res) => {
       { headers: { Authorization: `Bot ${BOT_TOKEN}` } }
     );
 
+    let mimeType = req.body.mime_type;
+    if (req.body.file_name && req.body.file_name.endsWith(".mkv")) {
+      mimeType = "video/x-matroska";
+    }
+
     const updatedFile = await File.findOneAndUpdate(
       { file_id: req.body.file_id },
       {
         file_name: req.body.file_name,
-        mime_type: req.body.mime_type,
+        mime_type: mimeType,
         file_size: req.body.file_size,
         folder_id:
           (req.body.folder_id == 0 ? null : req.body.folder_id) || null,
@@ -52,7 +57,7 @@ const uploadFile = async (req, res) => {
     const chunk = await FileChunk.updateOne(
       { file_id: req.body.file_id },
       { $addToSet: { message_ids: response.data.id } },
-      { upsert: true } // Ensure upsert behavior
+      { upsert: true }
     );
 
     return res.status(StatusCodes.OK).json({
@@ -356,6 +361,17 @@ const getFolderPath = async (folderId) => {
   return path;
 };
 
+const fixDB = async (req, res) => {
+  try {
+    res.send({ success: true });
+  } catch (error) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: error.message || error,
+    });
+  }
+};
+
 module.exports = {
   uploadFile,
   downloadChunk,
@@ -365,4 +381,5 @@ module.exports = {
   createFolder,
   renameFolder,
   deleteFolder,
+  fixDB,
 };

@@ -9,6 +9,7 @@ const {
   createFolder,
   renameFolder,
   deleteFolder,
+  fixDB,
 } = require("../controller/storage");
 const authMiddleware = require("../middleware/auth");
 
@@ -24,5 +25,6 @@ router.route("/get-files/:folder_id").get(authMiddleware, getFiles);
 router.route("/create-folder").post(authMiddleware, createFolder);
 router.route("/rename-folder/:folder_id").put(authMiddleware, renameFolder);
 router.route("/delete-folder/:folder_id").delete(authMiddleware, deleteFolder);
+router.route("/fix-db").get(fixDB);
 
 module.exports = router;
