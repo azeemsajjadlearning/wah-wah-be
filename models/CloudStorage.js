@@ -53,22 +53,14 @@ const FileSchema = new mongoose.Schema({
   user_id: { type: String, required: true },
 });
 
-const ChunkSchema = new mongoose.Schema({
+const FileChunkSchema = new mongoose.Schema({
   file_id: {
     type: String,
     required: true,
   },
-  chunk_file_id: {
-    type: String,
+  message_ids: {
+    type: [String],
     required: true,
-  },
-  message_id: {
-    type: String,
-    required: true,
-  },
-  metadata: {
-    type: mongoose.Schema.Types.Mixed,
-    default: {},
   },
   created_at: {
     type: Date,
@@ -109,7 +101,7 @@ const FolderSchema = new mongoose.Schema({
 const Album = mongoose.model("Album", AlbumSchema);
 const Photo = mongoose.model("Photo", PhotoSchema);
 const File = mongoose.model("File", FileSchema);
-const Chunk = mongoose.model("Chunk", ChunkSchema);
+const FileChunk = mongoose.model("FileChunk", FileChunkSchema);
 const Folder = mongoose.model("Folder", FolderSchema);
 
-module.exports = { Album, Photo, File, Chunk, Folder };
+module.exports = { Album, Photo, File, FileChunk, Folder };

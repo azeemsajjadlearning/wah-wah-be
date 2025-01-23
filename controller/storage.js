@@ -4,7 +4,7 @@ const axios = require("axios");
 const FormData = require("form-data");
 const { StatusCodes } = require("http-status-codes");
 
-const { File, Chunk, Folder } = require("../models/CloudStorage");
+const { File, FileChunk, Folder } = require("../models/CloudStorage");
 
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const CHANNEL_ID = process.env.DISCORD_CHANNEL_ID;
@@ -49,13 +49,11 @@ const uploadFile = async (req, res) => {
       { new: true, upsert: true }
     );
 
-    const chunk = new Chunk({
-      file_id: req.body.file_id,
-      chunk_file_id: response.data.attachments[0].id,
-      message_id: response.data.id,
-      metadata: response.data.attachments[0],
-    });
-    await chunk.save();
+    const chunk = await FileChunk.updateOne(
+      { file_id: req.body.file_id },
+      { $addToSet: { message_ids: response.data.id } },
+      { upsert: true } // Ensure upsert behavior
+    );
 
     return res.status(StatusCodes.OK).json({
       success: true,
@@ -121,7 +119,7 @@ const downloadChunk = async (req, res) => {
 
 const getChunks = async (req, res) => {
   try {
-    const chunks = await Chunk.find({ file_id: req.params.file_id });
+    const chunks = await FileChunk.find({ file_id: req.params.file_id });
     const file = await File.find({ file_id: req.params.file_id });
     return res
       .status(StatusCodes.OK)
@@ -136,37 +134,55 @@ const getChunks = async (req, res) => {
 
 const deleteFile = async (req, res) => {
   try {
-    const messageIds = (await Chunk.find({ file_id: req.params.file_id })).map(
-      (ele) => ele.message_id
-    );
+    const fileChunks = await FileChunk.find({ file_id: req.params.file_id });
 
-    const chunkSize = 100;
-    const chunks = [];
-
-    for (let i = 0; i < messageIds.length; i += chunkSize) {
-      chunks.push(messageIds.slice(i, i + chunkSize));
+    if (!fileChunks.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No chunks found for the specified file_id.",
+      });
     }
 
-    for (const chunk of chunks) {
-      try {
-        await axios.post(
-          `https://discord.com/api/v10/channels/${CHANNEL_ID}/messages/bulk-delete`,
-          {
-            messages: chunk,
-          },
-          {
-            headers: {
-              Authorization: `Bot ${BOT_TOKEN}`,
-            },
-          }
-        );
-      } catch (error) {
-        console.log(`Error deleting chunk: ${error}`);
+    const messageIds = fileChunks.map((chunk) => chunk.message_ids).flat();
+
+    if (messageIds.length > 1) {
+      const chunkSize = 100;
+      const chunks = [];
+
+      for (let i = 0; i < messageIds.length; i += chunkSize) {
+        chunks.push(messageIds.slice(i, i + chunkSize));
       }
+
+      for (const chunk of chunks) {
+        try {
+          await axios.post(
+            `https://discord.com/api/v10/channels/${CHANNEL_ID}/messages/bulk-delete`,
+            {
+              messages: chunk,
+            },
+            {
+              headers: {
+                Authorization: `Bot ${BOT_TOKEN}`,
+              },
+            }
+          );
+        } catch (error) {
+          console.log(`Error deleting chunk: ${error}`);
+        }
+      }
+    } else {
+      const response = await axios.delete(
+        `https://discord.com/api/v10/channels/${CHANNEL_ID}/messages/${messageIds[0]}`,
+        {
+          headers: {
+            Authorization: `Bot ${BOT_TOKEN}`,
+          },
+        }
+      );
     }
 
     await File.deleteOne({ file_id: req.params.file_id });
-    await Chunk.deleteMany({ file_id: req.params.file_id });
+    await FileChunk.deleteOne({ file_id: req.params.file_id });
 
     return res.status(StatusCodes.OK).send({ success: true });
   } catch (error) {
