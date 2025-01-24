@@ -205,12 +205,12 @@ const getFiles = async (req, res) => {
     const files = await File.find({
       folder_id: folderId,
       user_id: req.user.user_id,
-    });
+    }).sort({ file_name: 1 });
 
     const folders = await Folder.find({
       parent_folder_id: folderId,
       user_id: req.user.user_id,
-    });
+    }).sort({ folder_name: 1 });
 
     const folderPath = folderId ? await getFolderPath(folderId) : [];
 
