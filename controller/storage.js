@@ -139,55 +139,61 @@ const getChunks = async (req, res) => {
 
 const deleteFile = async (req, res) => {
   try {
-    const fileChunks = await FileChunk.find({ file_id: req.params.file_id });
+    const { file_id } = req.params;
+    const file = await File.findOne({ file_id });
 
-    if (!fileChunks.length) {
-      return res.status(404).json({
+    if (!file) {
+      return res.status(StatusCodes.NOT_FOUND).json({
         success: false,
-        message: "No chunks found for the specified file_id.",
+        message: "File not found.",
       });
     }
 
-    const messageIds = fileChunks.map((chunk) => chunk.message_ids).flat();
+    if (file.status === "uploaded") {
+      const fileChunks = await FileChunk.find({ file_id });
 
-    if (messageIds.length > 1) {
-      const chunkSize = 100;
-      const chunks = [];
-
-      for (let i = 0; i < messageIds.length; i += chunkSize) {
-        chunks.push(messageIds.slice(i, i + chunkSize));
+      if (!fileChunks.length) {
+        return res.status(StatusCodes.NOT_FOUND).json({
+          success: false,
+          message: "No chunks found for the specified file_id.",
+        });
       }
 
-      for (const chunk of chunks) {
+      const messageIds = fileChunks.map((chunk) => chunk.message_ids).flat();
+
+      if (messageIds.length > 1) {
+        const chunkSize = 100;
+        for (let i = 0; i < messageIds.length; i += chunkSize) {
+          const chunk = messageIds.slice(i, i + chunkSize);
+          try {
+            await axios.post(
+              `https://discord.com/api/v10/channels/${CHANNEL_ID}/messages/bulk-delete`,
+              { messages: chunk },
+              { headers: { Authorization: `Bot ${BOT_TOKEN}` } }
+            );
+          } catch (error) {
+            console.error(`Error deleting chunk: ${chunk}`, error);
+          }
+        }
+      } else {
         try {
-          await axios.post(
-            `https://discord.com/api/v10/channels/${CHANNEL_ID}/messages/bulk-delete`,
-            {
-              messages: chunk,
-            },
-            {
-              headers: {
-                Authorization: `Bot ${BOT_TOKEN}`,
-              },
-            }
+          await axios.delete(
+            `https://discord.com/api/v10/channels/${CHANNEL_ID}/messages/${messageIds[0]}`,
+            { headers: { Authorization: `Bot ${BOT_TOKEN}` } }
           );
         } catch (error) {
-          console.log(`Error deleting chunk: ${error}`);
+          console.error(
+            `Error deleting message with ID ${messageIds[0]}:`,
+            error
+          );
         }
       }
-    } else {
-      const response = await axios.delete(
-        `https://discord.com/api/v10/channels/${CHANNEL_ID}/messages/${messageIds[0]}`,
-        {
-          headers: {
-            Authorization: `Bot ${BOT_TOKEN}`,
-          },
-        }
-      );
-    }
 
-    await File.deleteOne({ file_id: req.params.file_id });
-    await FileChunk.deleteOne({ file_id: req.params.file_id });
+      await File.deleteOne({ file_id });
+      await FileChunk.deleteOne({ file_id });
+    } else if (file.status === "shortcut") {
+      await File.deleteOne({ file_id });
+    }
 
     return res.status(StatusCodes.OK).send({ success: true });
   } catch (error) {
@@ -314,6 +320,89 @@ const deleteFolder = async (req, res) => {
   }
 };
 
+const moveFile = async (req, res) => {
+  const { file_id, target_folder } = req.body;
+
+  if (!file_id) {
+    return res.status(StatusCodes.BAD_REQUEST).json({
+      message: "File ID and target folder are required",
+    });
+  }
+
+  try {
+    const file = await File.findOne({ file_id });
+
+    if (!file) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        message: "File not found",
+      });
+    }
+
+    file.folder_id = target_folder;
+    file.updated_at = Date.now();
+    await file.save();
+
+    return res.status(StatusCodes.OK).json({
+      success: true,
+      message: "File moved successfully",
+      result: file,
+    });
+  } catch (err) {
+    console.error("Error moving file:", err);
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: "Failed to move file",
+      error: err.message || err,
+    });
+  }
+};
+
+const copyFile = async (req, res) => {
+  const { file_id, target_folder, new_file_id } = req.body;
+
+  if (!file_id) {
+    return res.status(StatusCodes.BAD_REQUEST).json({
+      message: "File ID is required",
+    });
+  }
+
+  try {
+    const file = await File.findOne({ file_id });
+
+    if (!file) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        message: "File not found",
+      });
+    }
+
+    const copiedFile = new File({
+      file_name: file.file_name,
+      mime_type: file.mime_type,
+      file_id: new_file_id,
+      origin_file_id: file.origin_file_id || file_id,
+      file_size: file.file_size,
+      status: "shortcut",
+      folder_id: target_folder || file.folder_id,
+      user_id: file.user_id,
+    });
+
+    await copiedFile.save();
+
+    return res.status(StatusCodes.OK).json({
+      success: true,
+      message: "File copied successfully",
+      result: copiedFile,
+    });
+  } catch (err) {
+    console.error("Error copying file:", err);
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: "Failed to copy file",
+      error: err.message || err,
+    });
+  }
+};
+
 // Helper Function
 const saveFileChunk = (chunk, filePath) => {
   const dir = path.dirname(filePath);
@@ -363,7 +452,7 @@ const getFolderPath = async (folderId) => {
 
 const fixDB = async (req, res) => {
   try {
-    res.send({ success: true });
+    res.send({ success: true, message: `${resp.modifiedCount} files updated` });
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       success: false,
@@ -381,5 +470,7 @@ module.exports = {
   createFolder,
   renameFolder,
   deleteFolder,
+  moveFile,
+  copyFile,
   fixDB,
 };

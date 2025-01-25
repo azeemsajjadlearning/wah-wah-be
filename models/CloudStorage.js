@@ -34,9 +34,19 @@ const FileSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
+  origin_file_id: {
+    type: String,
+    required: false,
+  },
   file_size: {
     type: Number,
     required: true,
+  },
+  status: {
+    type: String,
+    enum: ["uploaded", "shared", "shortcut"],
+    required: true,
+    default: "uploaded",
   },
   created_at: {
     type: Date,
