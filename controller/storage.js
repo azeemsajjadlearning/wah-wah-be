@@ -211,12 +211,12 @@ const getFiles = async (req, res) => {
     const files = await File.find({
       folder_id: folderId,
       user_id: req.user.user_id,
-    }).sort({ file_name: 1 });
+    }).sort({ created_at: 1 });
 
     const folders = await Folder.find({
       parent_folder_id: folderId,
       user_id: req.user.user_id,
-    }).sort({ folder_name: 1 });
+    }).sort({ created_at: 1 });
 
     const folderPath = folderId ? await getFolderPath(folderId) : [];
 
@@ -382,7 +382,7 @@ const copyFile = async (req, res) => {
       origin_file_id: file.origin_file_id || file_id,
       file_size: file.file_size,
       status: "shortcut",
-      folder_id: target_folder || file.folder_id,
+      folder_id: target_folder,
       user_id: file.user_id,
     });
 
