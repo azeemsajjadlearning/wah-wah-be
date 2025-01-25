@@ -137,6 +137,29 @@ const getChunks = async (req, res) => {
   }
 };
 
+const search = async (req, res) => {
+  try {
+    const query = req.params.query;
+
+    const files = await File.find();
+
+    const folders = await Folder.find();
+
+    return res.status(StatusCodes.OK).send({
+      success: true,
+      result: {
+        files,
+        folders,
+      },
+    });
+  } catch (error) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: error.message || error,
+    });
+  }
+};
+
 const deleteFile = async (req, res) => {
   try {
     const { file_id } = req.params;
@@ -227,6 +250,33 @@ const getFiles = async (req, res) => {
         folders,
         folderPath,
       },
+    });
+  } catch (error) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: error.message || error,
+    });
+  }
+};
+
+const renameFile = async (req, res) => {
+  try {
+    const file = await File.findOne({ file_id: req.params.file_id });
+
+    if (!file) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        success: false,
+        error: "File not found",
+      });
+    }
+
+    file.file_name = req.body.file_name || file.file_name;
+
+    await file.save();
+
+    return res.status(StatusCodes.OK).json({
+      success: true,
+      result: file,
     });
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
@@ -465,8 +515,10 @@ module.exports = {
   uploadFile,
   downloadChunk,
   getChunks,
+  search,
   deleteFile,
   getFiles,
+  renameFile,
   createFolder,
   renameFolder,
   deleteFolder,
