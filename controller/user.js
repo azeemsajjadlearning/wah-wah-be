@@ -82,46 +82,6 @@ const logout = (req, res) => {
   }
 };
 
-const resetPassword = (req, res) => {
-  firebaseAdmin
-    .auth()
-    .generatePasswordResetLink(req.body.email)
-    .then((link) => {
-      const transporter = nodemailer.createTransport({
-        service: process.env.EMAIL_SERVICE,
-        auth: {
-          user: process.env.EMAIL_EMAIL,
-          pass: process.env.EMAIL_PASS,
-        },
-      });
-      const mailOptions = {
-        from: process.env.EMAIL_EMAIL,
-        to: req.body.email,
-        subject: "Reset your password for " + process.env.APP_NAME,
-        html: `<p>Hello,</p>
-              <p>Follow this link to reset your password your email address.</p>
-              ${link}
-              <p>If you didn’t ask to reset your password, you can ignore this email.</p>
-              <p>Thanks,</p>
-              <p>Your ${process.env.APP_NAME} team</p>
-            `,
-      };
-
-      transporter.sendMail(mailOptions, (error, info) => {
-        if (error) {
-          console.error(error);
-        } else {
-          res
-            .status(StatusCodes.OK)
-            .send({ success: true, result: "Email sent!" });
-        }
-      });
-    })
-    .catch((err) => {
-      res.send({ success: false, err });
-    });
-};
-
 const getUser = async (req, res) => {
   try {
     const user = await User.find({ user_id: req.user.user_id });
@@ -166,7 +126,6 @@ module.exports = {
   register,
   login,
   logout,
-  resetPassword,
   getUser,
   getAllUser,
   updateUser,

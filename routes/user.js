@@ -4,7 +4,6 @@ const {
   register,
   login,
   logout,
-  resetPassword,
   getUser,
   getAllUser,
   updateUser,
@@ -14,7 +13,6 @@ const authMiddleware = require("../middleware/auth");
 router.route("/register").post(register);
 router.route("/login").post(login);
 router.route("/logout").get(logout);
-router.route("/reset-password").post(resetPassword);
 router.route("/").get(authMiddleware, getUser);
 router.route("/all").get(authMiddleware, getAllUser);
 router.route("/").post(authMiddleware, updateUser);
