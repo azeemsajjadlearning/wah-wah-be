@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const axios = require("axios");
 const FormData = require("form-data");
+const Fuse = require("fuse.js");
 const { StatusCodes } = require("http-status-codes");
 
 const { File, FileChunk, Folder } = require("../models/CloudStorage");
@@ -141,15 +142,54 @@ const search = async (req, res) => {
   try {
     const query = req.params.query;
 
-    const files = await File.find();
+    const allFiles = await File.find();
+    const allFolders = await Folder.find();
 
-    const folders = await Folder.find();
+    const fuseOptions = {
+      keys: ["file_name", "folder_name"],
+      threshold: 0.4,
+    };
+
+    const fileFuse = new Fuse(allFiles, {
+      keys: ["file_name"],
+      ...fuseOptions,
+    });
+    const folderFuse = new Fuse(allFolders, {
+      keys: ["folder_name"],
+      ...fuseOptions,
+    });
+
+    const fuzzyFiles = fileFuse.search(query).map((result) => result.item);
+    const fuzzyFolders = folderFuse.search(query).map((result) => result.item);
+
+    const exactFiles = await File.find({
+      file_name: new RegExp(query, "i"),
+    });
+
+    const exactFolders = await Folder.find({
+      folder_name: new RegExp(query, "i"),
+    });
+
+    const dedupedFiles = [
+      ...new Map(
+        [...exactFiles, ...fuzzyFiles].map((item) => [item.file_name, item])
+      ).values(),
+    ];
+
+    const dedupedFolders = [
+      ...new Map(
+        [...exactFolders, ...fuzzyFolders].map((item) => [
+          item.folder_name,
+          item,
+        ])
+      ).values(),
+    ];
 
     return res.status(StatusCodes.OK).send({
       success: true,
       result: {
-        files,
-        folders,
+        files: dedupedFiles,
+        folders: dedupedFolders,
       },
     });
   } catch (error) {
