@@ -2,7 +2,6 @@ const { StatusCodes } = require("http-status-codes");
 const User = require("../models/User");
 const firebaseAdmin = require("firebase-admin");
 const firebase = require("firebase");
-const nodemailer = require("nodemailer");
 const jwt = require("jsonwebtoken");
 
 const register = (req, res) => {
@@ -22,7 +21,6 @@ const register = (req, res) => {
       })
       .finally(async () => {
         if (firebaseUser) {
-          sendEmailVerification(firebaseUser.email);
           req.body.user_id = firebaseUser.uid;
           const user = await User.create({ ...req.body });
           res
@@ -163,42 +161,6 @@ const updateUser = async (req, res) => {
     res.send({ success: false, err: error });
   }
 };
-
-function sendEmailVerification(email) {
-  firebaseAdmin
-    .auth()
-    .generateEmailVerificationLink(email)
-    .then((link) => {
-      const transporter = nodemailer.createTransport({
-        service: process.env.EMAIL_SERVICE,
-        auth: {
-          user: process.env.EMAIL_EMAIL,
-          pass: process.env.EMAIL_PASS,
-        },
-      });
-      const mailOptions = {
-        from: process.env.EMAIL_EMAIL,
-        to: email,
-        subject: "Verify your email for " + process.env.APP_NAME,
-        html: `<p>Hello </p>
-              <p>Follow this link to verify your email address.</p>
-              ${link}
-              <p>If you didn’t ask to verify this address, you can ignore this email.</p>
-              <p>Thanks,</p>
-              <p>Your ${process.env.APP_NAME} team</p>
-            `,
-      };
-
-      transporter.sendMail(mailOptions, (error, info) => {
-        if (error) {
-          console.error(error);
-        }
-      });
-    })
-    .catch((err) => {
-      console.log(err);
-    });
-}
 
 module.exports = {
   register,
