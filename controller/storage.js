@@ -141,9 +141,10 @@ const getChunks = async (req, res) => {
 const search = async (req, res) => {
   try {
     const query = req.params.query;
+    const userId = req.user.user_id;
 
-    const allFiles = await File.find({user_id:req.user.user_id});
-    const allFolders = await Folder.find({user_id:req.user.user_id});
+    const allFiles = await File.find({ user_id: userId });
+    const allFolders = await Folder.find({ user_id: userId });
 
     const fuseOptions = {
       keys: ["file_name", "folder_name"],
@@ -163,10 +164,12 @@ const search = async (req, res) => {
     const fuzzyFolders = folderFuse.search(query).map((result) => result.item);
 
     const exactFiles = await File.find({
+      user_id: userId,
       file_name: new RegExp(query, "i"),
     });
 
     const exactFolders = await Folder.find({
+      user_id: userId,
       folder_name: new RegExp(query, "i"),
     });
 
@@ -184,6 +187,9 @@ const search = async (req, res) => {
         ])
       ).values(),
     ];
+
+    dedupedFiles.sort((a, b) => a.file_name.localeCompare(b.file_name));
+    dedupedFolders.sort((a, b) => a.folder_name.localeCompare(b.folder_name));
 
     return res.status(StatusCodes.OK).send({
       success: true,
@@ -274,12 +280,12 @@ const getFiles = async (req, res) => {
     const files = await File.find({
       folder_id: folderId,
       user_id: req.user.user_id,
-    }).sort({ created_at: 1 });
+    }).sort({ file_name: 1 });
 
     const folders = await Folder.find({
       parent_folder_id: folderId,
       user_id: req.user.user_id,
-    }).sort({ created_at: 1 });
+    }).sort({ folder_name: 1 });
 
     const folderPath = folderId ? await getFolderPath(folderId) : [];
 
