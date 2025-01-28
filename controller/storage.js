@@ -142,8 +142,8 @@ const search = async (req, res) => {
   try {
     const query = req.params.query;
 
-    const allFiles = await File.find();
-    const allFolders = await Folder.find();
+    const allFiles = await File.find({user_id:req.user.user_id});
+    const allFolders = await Folder.find({user_id:req.user.user_id});
 
     const fuseOptions = {
       keys: ["file_name", "folder_name"],
