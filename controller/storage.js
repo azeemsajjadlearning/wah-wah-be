@@ -548,7 +548,41 @@ const getFolderPath = async (folderId) => {
 
 const fixDB = async (req, res) => {
   try {
-    res.send({ success: true, message: `${resp.modifiedCount} files updated` });
+    const storage = await File.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalFileSize: { $sum: "$file_size" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          totalFileSizeInGB: {
+            $divide: [
+              { $divide: [{ $divide: ["$totalFileSize", 1024] }, 1024] },
+              1024,
+            ],
+          },
+        },
+      },
+    ]);
+
+    const messages = await FileChunk.aggregate([
+      { $unwind: "$message_ids" },
+      { $group: { _id: null, totalMessageIds: { $sum: 1 } } },
+    ]);
+
+    const storageInGB = storage.length > 0 ? storage[0].totalFileSizeInGB : 0;
+    const totalMessages = messages.length > 0 ? messages[0].totalMessageIds : 0;
+
+    const storageRounded = storageInGB.toFixed(2);
+
+    res.send({
+      success: true,
+      storage: parseFloat(storageRounded),
+      messages: totalMessages,
+    });
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       success: false,
