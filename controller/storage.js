@@ -39,6 +39,8 @@ const uploadFile = async (req, res) => {
     let mimeType = req.body.mime_type;
     if (req.body.file_name && req.body.file_name.endsWith(".mkv")) {
       mimeType = "video/x-matroska";
+    } else if (req.body.file_name && req.body.file_name.endsWith(".srt")) {
+      mimeType = "application/x-subrip";
     }
 
     const updatedFile = await File.findOneAndUpdate(
