@@ -13,6 +13,7 @@ const {
   deleteFolder,
   moveFile,
   copyFile,
+  moveFolder,
   fixDB,
 } = require("../controller/storage");
 const authMiddleware = require("../middleware/auth");
@@ -33,6 +34,7 @@ router.route("/rename-folder/:folder_id").put(authMiddleware, renameFolder);
 router.route("/delete-folder/:folder_id").delete(authMiddleware, deleteFolder);
 router.route("/move-file").post(authMiddleware, moveFile);
 router.route("/copy-file").post(authMiddleware, copyFile);
+router.route("/move-folder").post(authMiddleware, moveFolder);
 router.route("/fix-db").get(fixDB);
 
 module.exports = router;

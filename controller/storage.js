@@ -501,6 +501,43 @@ const copyFile = async (req, res) => {
   }
 };
 
+const moveFolder = async (req, res) => {
+  const { folder_id, target_folder } = req.body;
+
+  if (!folder_id) {
+    return res.status(StatusCodes.BAD_REQUEST).json({
+      message: "Folder ID and target folder are required",
+    });
+  }
+
+  try {
+    const folder = await Folder.findOne({ folder_id });
+
+    if (!folder) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        message: "Folder not found",
+      });
+    }
+
+    folder.parent_folder_id = target_folder;
+    folder.updated_at = Date.now();
+    await folder.save();
+
+    return res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Folder moved successfully",
+      result: folder,
+    });
+  } catch (error) {
+    console.error("Error moving folder:", err);
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: "Failed to move folder",
+      error: err.message || err,
+    });
+  }
+};
+
 // Helper Function
 const saveFileChunk = (chunk, filePath) => {
   const dir = path.dirname(filePath);
@@ -606,5 +643,6 @@ module.exports = {
   deleteFolder,
   moveFile,
   copyFile,
+  moveFolder,
   fixDB,
 };
