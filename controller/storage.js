@@ -621,6 +621,7 @@ const fixDB = async (req, res) => {
       success: true,
       storage: parseFloat(storageRounded),
       messages: totalMessages,
+      bismilla: "bismilla",
     });
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
