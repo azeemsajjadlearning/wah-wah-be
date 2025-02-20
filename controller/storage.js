@@ -621,6 +621,7 @@ const fixDB = async (req, res) => {
       success: true,
       storage: parseFloat(storageRounded),
       messages: totalMessages,
+      hello: "world",
     });
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
