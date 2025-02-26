@@ -597,9 +597,14 @@ const fixDB = async (req, res) => {
       {
         $project: {
           _id: 0,
-          totalFileSizeInGB: {
+          totalFileSizeInTB: {
             $divide: [
-              { $divide: [{ $divide: ["$totalFileSize", 1024] }, 1024] },
+              {
+                $divide: [
+                  { $divide: [{ $divide: ["$totalFileSize", 1024] }, 1024] },
+                  1024,
+                ],
+              },
               1024,
             ],
           },
