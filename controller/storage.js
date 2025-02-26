@@ -617,15 +617,15 @@ const fixDB = async (req, res) => {
       { $group: { _id: null, totalMessageIds: { $sum: 1 } } },
     ]);
 
-    const storageInGB = storage.length > 0 ? storage[0].totalFileSizeInGB : 0;
+    const storageInTB = storage.length > 0 ? storage[0].totalFileSizeInTB : 0;
     const totalMessages = messages.length > 0 ? messages[0].totalMessageIds : 0;
 
-    const storageRounded = storageInGB.toFixed(2);
+    const storageRounded = storageInTB.toFixed(2);
 
     res.send({
       success: true,
-      storage: parseFloat(storageRounded),
-      messages: totalMessages,
+      storage: parseFloat(storageRounded) + " TB",
+      messages: new Intl.NumberFormat("en-IN").format(totalMessages),
     });
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
