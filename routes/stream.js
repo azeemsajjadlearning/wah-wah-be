@@ -1,9 +1,16 @@
 const express = require("express");
-const { getFiles, stream } = require("../controller/stream");
+const {
+  stream,
+  getFiles,
+  startStream,
+  stopStream,
+} = require("../controller/stream");
 
 const router = express.Router();
 
-router.get("/get-files", getFiles);
 router.post("/", stream);
+router.get("/get-files", getFiles);
+router.get("/start-cctv-stream", startStream);
+router.get("/stop-cctv-stream", stopStream);
 
 module.exports = router;

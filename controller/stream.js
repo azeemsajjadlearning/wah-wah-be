@@ -1,3 +1,6 @@
+const Stream = require("node-rtsp-stream");
+const activeStreams = new Map();
+
 const getFiles = async (req, res) => {
   try {
     const magnet = req.query.magnet;
@@ -65,4 +68,87 @@ const stream = async (req, res) => {
   }
 };
 
-module.exports = { getFiles, stream };
+const startStream = async (req, res) => {
+  try {
+    const { channel } = req.query;
+    if (!channel || !portMap[channel]) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid or missing channel" });
+    }
+
+    if (activeStreams.has(channel)) {
+      return res.status(200).json({
+        success: true,
+        wsUrl: `ws://localhost:${portMap[channel]}/`,
+      });
+    }
+
+    const stream = new Stream({
+      name: channel,
+      streamUrl: process.env.CCTV_RTSP_URL + channel,
+      wsPort: portMap[channel],
+      ffmpegOptions: {
+        "-stats": "",
+        "-r": 30,
+      },
+    });
+
+    activeStreams.set(channel, stream);
+
+    res.status(200).json({
+      success: true,
+      wsUrl: `ws://localhost:${portMap[channel]}/`,
+    });
+  } catch (err) {
+    console.error("Stream Error:", err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const stopStream = async (req, res) => {
+  try {
+    const { channel } = req.query;
+
+    if (!channel) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing channel" });
+    }
+
+    const stream = activeStreams.get(channel);
+
+    if (!stream) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Stream not found" });
+    }
+
+    stream.stop();
+    activeStreams.delete(channel);
+
+    res
+      .status(200)
+      .json({ success: true, message: `Stream ${channel} stopped` });
+  } catch (err) {
+    console.error("Stop Stream Error:", err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const portMap = {
+  101: 9990,
+  102: 9991,
+  201: 9992,
+  202: 9993,
+  301: 9994,
+  302: 9995,
+  401: 9996,
+  402: 9997,
+  501: 9998,
+  502: 9999,
+  601: 10000,
+  602: 10001,
+};
+
+module.exports = { getFiles, stream, startStream, stopStream };
