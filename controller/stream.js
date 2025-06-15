@@ -1,5 +1,6 @@
 const Stream = require("node-rtsp-stream");
 const activeStreams = new Map();
+const moment = require("moment");
 
 const getFiles = async (req, res) => {
   try {
@@ -70,6 +71,7 @@ const stream = async (req, res) => {
 
 const startStream = async (req, res) => {
   try {
+    const host = req.headers.host.split(":")[0];
     const { channel } = req.query;
     if (!channel || !portMap[channel]) {
       return res
@@ -80,13 +82,13 @@ const startStream = async (req, res) => {
     if (activeStreams.has(channel)) {
       return res.status(200).json({
         success: true,
-        wsUrl: `ws://localhost:${portMap[channel]}/`,
+        wsUrl: `ws://${host}:${portMap[channel]}/`,
       });
     }
 
     const stream = new Stream({
       name: channel,
-      streamUrl: process.env.CCTV_RTSP_URL + channel,
+      streamUrl: `rtsp://${process.env.CCTV_USERNAME}:${process.env.CCTV_PASSWORD}@${process.env.CCTV_IP}/Streaming/channels/${channel}`,
       wsPort: portMap[channel],
       ffmpegOptions: {
         "-stats": "",
@@ -98,7 +100,7 @@ const startStream = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      wsUrl: `ws://localhost:${portMap[channel]}/`,
+      wsUrl: `ws://${host}:${portMap[channel]}/`,
     });
   } catch (err) {
     console.error("Stream Error:", err.message);
@@ -136,19 +138,79 @@ const stopStream = async (req, res) => {
   }
 };
 
-const portMap = {
-  101: 9990,
-  102: 9991,
-  201: 9992,
-  202: 9993,
-  301: 9994,
-  302: 9995,
-  401: 9996,
-  402: 9997,
-  501: 9998,
-  502: 9999,
-  601: 10000,
-  602: 10001,
+const viewRecordings = async (req, res) => {
+  try {
+    const host = req.headers.host.split(":")[0];
+    const { channel, datetime } = req.query;
+
+    if (!channel || !portMap[channel]) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid or missing channel" });
+    }
+
+    if (!datetime) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing datetime in query" });
+    }
+
+    const startMoment = moment(datetime);
+    if (!startMoment.isValid()) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid datetime format" });
+    }
+
+    const formatted = moment(datetime).utc().format("YYYYMMDDTHHmmss") + "z";
+
+    const wsPort = portMap[channel];
+
+    const rtspUrl = `rtsp://${process.env.CCTV_USERNAME}:${process.env.CCTV_PASSWORD}@${process.env.CCTV_IP}/Streaming/tracks/${channel}?starttime=${formatted}`;
+
+    if (activeStreams.has(channel)) {
+      return res.status(200).json({
+        success: true,
+        wsUrl: `ws://${host}:${wsPort}/`,
+        message: "Stream already active",
+      });
+    }
+
+    const stream = new Stream({
+      name: `recording-${channel}`,
+      streamUrl: rtspUrl,
+      wsPort,
+      ffmpegOptions: {
+        "-stats": "",
+        "-r": 30,
+      },
+    });
+
+    activeStreams.set(channel, stream);
+
+    return res.status(200).json({
+      success: true,
+      wsUrl: `ws://${host}:${wsPort}/`,
+    });
+  } catch (error) {
+    console.error("View Recordings Error:", error.message);
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
-module.exports = { getFiles, stream, startStream, stopStream };
+const portMap = {
+  101: 9900,
+  102: 9901,
+  201: 9902,
+  202: 9903,
+  301: 9904,
+  302: 9905,
+  401: 9906,
+  402: 9907,
+  501: 9908,
+  502: 9909,
+  601: 9910,
+  602: 9911,
+};
+
+module.exports = { getFiles, stream, startStream, stopStream, viewRecordings };
