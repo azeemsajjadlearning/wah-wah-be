@@ -93,6 +93,9 @@ const startStream = async (req, res) => {
       ffmpegOptions: {
         "-stats": "",
         "-r": 30,
+        "-s": "1920x1080",
+        "-b:v": "3000k",
+        "-preset": "veryfast",
       },
     });
 
@@ -183,6 +186,9 @@ const viewRecordings = async (req, res) => {
       ffmpegOptions: {
         "-stats": "",
         "-r": 30,
+        "-s": "1920x1080",
+        "-b:v": "3000k",
+        "-preset": "veryfast",
       },
     });
 
