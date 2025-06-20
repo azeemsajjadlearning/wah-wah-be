@@ -73,6 +73,7 @@ const startStream = async (req, res) => {
   try {
     const host = req.headers.host.split(":")[0];
     const { channel } = req.query;
+
     if (!channel || !portMap[channel]) {
       return res
         .status(400)
@@ -100,6 +101,21 @@ const startStream = async (req, res) => {
     });
 
     activeStreams.set(channel, stream);
+
+    setTimeout(() => {
+      if (activeStreams.has(channel)) {
+        console.log(`Auto-stopping stream for channel ${channel}`);
+
+        const streamToStop = activeStreams.get(channel);
+        try {
+          streamToStop?.stop?.(); // Call .stop() if it exists
+        } catch (e) {
+          console.warn("Stream .stop() failed or not available:", e.message);
+        }
+
+        activeStreams.delete(channel);
+      }
+    }, 5 * 60 * 1000);
 
     res.status(200).json({
       success: true,
@@ -166,7 +182,6 @@ const viewRecordings = async (req, res) => {
     }
 
     const formatted = moment(datetime).utc().format("YYYYMMDDTHHmmss") + "z";
-
     const wsPort = portMap[channel];
 
     const rtspUrl = `rtsp://${process.env.CCTV_USERNAME}:${process.env.CCTV_PASSWORD}@${process.env.CCTV_IP}/Streaming/tracks/${channel}?starttime=${formatted}`;
@@ -193,6 +208,19 @@ const viewRecordings = async (req, res) => {
     });
 
     activeStreams.set(channel, stream);
+
+    setTimeout(() => {
+      if (activeStreams.has(channel)) {
+        console.log(`Auto-stopping recorded stream for channel ${channel}`);
+        const recStream = activeStreams.get(channel);
+        try {
+          recStream?.stop?.();
+        } catch (err) {
+          console.warn(`Error stopping stream for ${channel}:`, err.message);
+        }
+        activeStreams.delete(channel);
+      }
+    }, 5 * 60 * 1000);
 
     return res.status(200).json({
       success: true,
