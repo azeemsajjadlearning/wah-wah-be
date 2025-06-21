@@ -72,6 +72,8 @@ const stream = async (req, res) => {
 const startStream = async (req, res) => {
   try {
     const host = req.headers.host.split(":")[0];
+    const protocol =
+      req.headers["x-forwarded-proto"] === "https" ? "wss" : "ws";
     const { channel } = req.query;
 
     if (!channel || !portMap[channel]) {
@@ -83,7 +85,7 @@ const startStream = async (req, res) => {
     if (activeStreams.has(channel)) {
       return res.status(200).json({
         success: true,
-        wsUrl: `ws://${host}:${portMap[channel]}/`,
+        wsUrl: `${protocol}://${host}:${portMap[channel]}/`,
       });
     }
 
@@ -108,7 +110,7 @@ const startStream = async (req, res) => {
 
         const streamToStop = activeStreams.get(channel);
         try {
-          streamToStop?.stop?.(); // Call .stop() if it exists
+          streamToStop?.stop?.();
         } catch (e) {
           console.warn("Stream .stop() failed or not available:", e.message);
         }
@@ -119,7 +121,7 @@ const startStream = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      wsUrl: `ws://${host}:${portMap[channel]}/`,
+      wsUrl: `${protocol}://${host}:${portMap[channel]}/`,
     });
   } catch (err) {
     console.error("Stream Error:", err.message);
@@ -160,6 +162,8 @@ const stopStream = async (req, res) => {
 const viewRecordings = async (req, res) => {
   try {
     const host = req.headers.host.split(":")[0];
+    const protocol =
+      req.headers["x-forwarded-proto"] === "https" ? "wss" : "ws";
     const { channel, datetime } = req.query;
 
     if (!channel || !portMap[channel]) {
@@ -189,7 +193,7 @@ const viewRecordings = async (req, res) => {
     if (activeStreams.has(channel)) {
       return res.status(200).json({
         success: true,
-        wsUrl: `ws://${host}:${wsPort}/`,
+        wsUrl: `${protocol}://${host}:${wsPort}/`,
         message: "Stream already active",
       });
     }
@@ -224,7 +228,7 @@ const viewRecordings = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      wsUrl: `ws://${host}:${wsPort}/`,
+      wsUrl: `${protocol}://${host}:${wsPort}/`,
     });
   } catch (error) {
     console.error("View Recordings Error:", error.message);
