@@ -1,4 +1,5 @@
 const express = require("express");
+const status = require("express-status-monitor");
 const firebaseAdmin = require("firebase-admin");
 const firebase = require("firebase");
 const connectDB = require("./db/connect");
@@ -9,6 +10,7 @@ var axios = require("axios");
 require("dotenv").config();
 
 const app = express();
+app.use(status());
 firebaseAdmin.initializeApp({
   credential: firebaseAdmin.credential.cert(
     JSON.parse(process.env.FIREBASE_KEY)
